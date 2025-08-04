@@ -1,0 +1,322 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>논증 요약하기</title>
+    <link rel="stylesheet" href="style.css?v=4.8">
+    <style>
+        /* '논증 요약하기' 페이지 레이아웃 긴급 수정 */
+        #summary-form-area .form-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-bottom: 15px;
+        }
+        #summary-form-area .form-group textarea {
+            line-height: 1.6 !important;
+        }
+
+        #summary-form-area .ground-block {
+            display: flex;
+            flex-wrap: wrap;
+            align-items: stretch; /* 버튼과 textarea 높이를 맞춤 */
+            gap: 10px;
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 15px;
+            margin-bottom: 15px;
+        }
+
+        #summary-form-area .ground-block > label {
+            width: 100%;
+            font-weight: bold;
+            margin-bottom: 0;
+        }
+
+        #summary-form-area .ground-block > textarea {
+            flex-grow: 1;
+            width: auto;
+            min-height: 80px; /* 최소 높이 지정 */
+        }
+
+        #summary-form-area .ground-block > .remove-ground-btn {
+            flex-shrink: 0;
+            background-color: #dc3545; /* 삭제 버튼 색상 변경 */
+            color: white; /* 텍스트 색상 흰색으로 */
+            border: 1px solid #dc3545;
+            padding: 0 15px;
+            cursor: pointer;
+            font-size: 1.2rem;
+            border-radius: 5px;
+            align-self: flex-start; /* 버튼을 상단에 정렬 */
+        }
+
+        #summary-form-area .ground-block > .add-sub-ground-btn {
+            flex-basis: 100%; /* 항상 아래 줄에 위치 */
+            width: auto;
+            padding: 4px 8px;
+            font-size: 0.8em;
+            background-color: #6c757d;
+            color: white;
+            border: none;
+            border-radius: 4px;
+        }
+
+        /* 제시문 생성 영역 스타일 개선 */
+        .input-area {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+
+        .input-area #keyword-input {
+            flex: 0 0 300px; /* 고정 폭으로 설정 */
+            max-width: 300px;
+        }
+
+        .input-area #difficulty-selector {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            flex-shrink: 0;
+        }
+
+        .input-area #difficulty-selector span {
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        .input-area #difficulty-selector label {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 0.9em;
+            margin: 0;
+        }
+
+        .input-area #generate-btn {
+            flex-shrink: 0;
+            margin-left: auto;
+        }
+
+        /* 제시문 표시 영역 스크롤 추가 */
+        .text-display-box {
+            background-color: #f8f9fa;
+            border: 1px solid #dee2e6;
+            border-radius: 4px;
+            padding: 1.5rem;
+            min-height: 150px;
+            max-height: 450px; /* 최대 높이 제한 */
+            overflow-y: auto; /* 세로 스크롤 자동 생성 */
+            white-space: pre-wrap; /* 줄바꿈 유지 */
+            line-height: 1.8; /* 읽기 편한 줄 간격 */
+        }
+
+        #text-display {
+            font-size: 1.05em;
+        }
+
+        /* 비논증 요약하기 스타일 */
+        .radio-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+            margin-top: 8px;
+        }
+
+        .radio-item {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            cursor: pointer;
+            padding: 5px;
+            border-radius: 4px;
+            transition: background-color 0.2s;
+        }
+
+        .radio-item:hover {
+            background-color: #f8f9fa;
+        }
+
+        .radio-item input[type="radio"] {
+            margin: 0;
+            cursor: pointer;
+        }
+
+        .radio-item span {
+            font-weight: normal;
+            cursor: pointer;
+            user-select: none;
+        }
+
+        .content-panel {
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <a>분석적 요약하기</a>
+        </div>
+        <div class="navbar-menu">
+            <a href="javascript:void(0)" class="mode-btn active" onclick="switchToArgument()">논증 요약하기</a>
+            <a href="javascript:void(0)" class="mode-btn" onclick="switchToNonArgument()">비논증 요약하기</a>
+            <a href="image-summary.html" class="mode-btn">이미지 요약하기</a>
+            <a href="compare.html" class="mode-btn">비교하기</a>
+        </div>
+        <div class="navbar-right">
+            <a href="index.html" class="mode-btn">메인 페이지</a>
+        </div>
+    </nav>
+
+    <main class="container summary-container">
+        <div class="summary-column column-left left-panel">
+            <!-- 비논증 요약하기 패널 (왼쪽에 모든 기능) -->
+            <div id="non-argument-panel" class="content-panel" style="display: none;">
+                <div class="column-header">
+                    <h2>비논증 요약하기</h2>
+                </div>
+                <div class="scrollable-content">
+                    <!-- 요약 유형 선택 -->
+                    <div class="input-area" style="margin-bottom: 15px;">
+                        <div style="display: flex; align-items: center; gap: 15px; flex-wrap: wrap;">
+                            <span style="font-weight: bold; margin-right: 10px;">요약 유형:</span>
+                            <label style="display: flex; align-items: center; gap: 3px; margin: 0;">
+                                <input type="radio" name="summary-type" value="delete" checked> 삭제
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 3px; margin: 0;">
+                                <input type="radio" name="summary-type" value="select"> 선택
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 3px; margin: 0;">
+                                <input type="radio" name="summary-type" value="generalize"> 일반화
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 3px; margin: 0;">
+                                <input type="radio" name="summary-type" value="reconstruct"> 재구성
+                            </label>
+                        </div>
+                    </div>
+
+                    <!-- 키워드 입력과 난이도 선택 -->
+                    <div class="input-area">
+                        <input type="text" id="non-argument-keyword" placeholder="키워드를 입력하세요 (예: 사회적, 기능소등)" style="flex: 0 0 300px; max-width: 300px;">
+                        <div id="non-argument-difficulty-selector" class="difficulty-selector" style="display: flex; align-items: center; gap: 10px; flex-shrink: 0;">
+                            <span style="font-weight: bold; margin-right: 5px;">난이도:</span>
+                            <label style="display: flex; align-items: center; gap: 3px; font-size: 0.9em; margin: 0;">
+                                <input type="radio" name="non-argument-difficulty" value="easy" checked> 쉬움
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 3px; font-size: 0.9em; margin: 0;">
+                                <input type="radio" name="non-argument-difficulty" value="normal"> 보통
+                            </label>
+                            <label style="display: flex; align-items: center; gap: 3px; font-size: 0.9em; margin: 0;">
+                                <input type="radio" name="non-argument-difficulty" value="hard"> 어려움
+                            </label>
+                        </div>
+                        <button id="generate-non-argument-btn" class="action-btn" style="flex-shrink: 0; margin-left: auto;">제시문 생성</button>
+                    </div>
+
+                    
+
+                    <!-- 제시문 표시 영역 -->
+                    <div class="text-display-box">
+                        <div id="non-argument-text-display">여기에 생성된 제시문이 나타납니다.</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 논증 요약하기 패널 (기존대로 왼쪽에는 제시문만) -->
+            <div id="argument-panel" class="content-panel">
+                <div class="column-header">
+                    <button id="view-detail-btn" class="action-btn secondary" style="display: none;">자세히 보기</button>
+                </div>
+                <div class="input-area">
+                    <input type="text" id="keyword-input" placeholder="키워드를 입력하세요 (예: 사형제, 기본소득)">
+                    <div id="difficulty-selector" class="difficulty-selector">
+                        <span>난이도:</span>
+                        <label><input type="radio" name="difficulty" value="easy" checked> 쉬움</label>
+                        <label><input type="radio" name="difficulty" value="normal"> 보통</label>
+                        <label><input type="radio" name="difficulty" value="hard"> 어려움</label>
+                    </div>
+                    <button id="generate-btn" class="action-btn">제시문 생성</button>
+                </div>
+                <div class="scrollable-content">
+                    <div class="text-display-box">
+                        <div id="text-display">여기에 생성된 제시문이 나타납니다.</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="summary-column column-right right-panel">
+            <!-- 논증 요약하기 - 요약문 작성 패널 -->
+            <div id="argument-summary-panel" class="content-panel">
+                <div class="column-header">
+                    <h2>요약문 작성</h2>
+                </div>
+                <div id="summary-form-area" class="scrollable-content">
+                    <form id="summary-form">
+                        <div class="form-group">
+                            <label for="issue-input">제시문의 쟁점은?</label>
+                            <textarea id="issue-input" class="form-control" placeholder="쟁점을 의문문 형식으로 요약하세요."></textarea>
+                        </div>
+                        <div class="form-group">
+                            <label for="claim-input">제시문의 주장(결론)은?</label>
+                            <textarea id="claim-input" class="form-control" placeholder="핵심 주장을 한 문장으로 요약하세요."></textarea>
+                        </div>
+                        <div id="grounds-container">
+                            <!-- 근거 블록이 여기에 동적으로 추가됩니다 -->
+                        </div>
+                    </form>
+                </div>
+                <div class="column-footer">
+                    <button type="button" id="add-ground-btn" class="action-btn secondary">+ 근거 추가</button>
+                    <button type="button" id="submit-summary-btn" class="action-btn">모범답안 확인하기</button>
+                </div>
+            </div>
+
+            <!-- 비논증 요약하기 - 요약문 작성 패널 -->
+            <div id="non-argument-summary-panel" class="content-panel" style="display: none;">
+                <div class="column-header">
+                    <h2>요약문 작성</h2>
+                </div>
+                <div class="scrollable-content">
+                    <div class="form-group">
+                        <label for="non-argument-summary-input">위 제시문을 선택한 요약 유형에 맞게 요약해보세요:</label>
+                        <textarea id="non-argument-summary-input" class="form-control" placeholder="여기에 요약문을 작성하세요..." rows="10" style="resize: vertical; min-height: 200px;"></textarea>
+                    </div>
+                </div>
+                <div class="column-footer">
+                    <button type="button" id="check-non-argument-answer-btn" class="action-btn">모범답안 확인하기</button>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <div id="passage-detail-panel" class="passage-detail-panel">
+        <div class="content-wrapper">
+            <div id="passage-detail-content"></div>
+            <button id="close-detail-panel" class="close-btn">&times;</button>
+        </div>
+    </div>
+
+    <!-- 팝업 관련 HTML -->
+    <div id="popup-backdrop" class="hidden"></div>
+    <div id="popup-container" class="hidden">
+        <div id="popup-header">
+            <h4>채점 결과</h4>
+            <button id="popup-close-btn" class="popup-close-btn">&times;</button>
+        </div>
+        <div id="popup-content"></div>
+    </div>
+
+    <script src="argument-summary-script.js?v=4.0"></script>
+</body>
+</html> 

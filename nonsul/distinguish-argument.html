@@ -1,0 +1,214 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>논증 구분하기</title>
+    <link rel="stylesheet" href="style.css?v=1.8">
+    <style>
+        /* 논증 구분하기 페이지 전용 스타일 (강제 적용) */
+        .distinction-container {
+            max-width: 1400px !important;
+            margin: 0 auto !important;
+        }
+
+        .distinction-col #keyword-input,
+        .distinction-col #subject-input {
+            height: 40px !important;
+            padding: 0 10px !important;
+            font-size: 1rem !important;
+        }
+
+        .passage-box {
+            min-height: 250px !important;
+            font-size: 1.1rem !important;
+        }
+        
+        .choice-buttons {
+            display: flex !important;
+            gap: 10px !important;
+        }
+
+        .choice-btn {
+            flex-grow: 1 !important;
+            padding: 12px 5px !important;
+            font-size: 1rem !important;
+            border: 1px solid #ccc !important;
+            background-color: #f9f9f9 !important;
+            color: #333 !important;
+            cursor: pointer !important;
+            transition: all 0.2s !important;
+            border-radius: 4px !important;
+            display: inline-flex !important;
+            align-items: center !important;
+            justify-content: center !important;
+            height: 45px !important;
+        }
+
+        .choice-btn:hover {
+            background-color: #e9e9e9 !important;
+            border-color: #bbb !important;
+        }
+
+        .choice-btn.selected {
+            background-color: #0d6efd !important;
+            color: white !important;
+            border-color: #0d6efd !important;
+        }
+
+        #submit-btn {
+            width: 100% !important;
+            padding: 15px !important;
+            font-size: 1.1rem !important;
+            border-radius: 4px !important;
+            margin-top: 10px !important;
+            border: 1px solid #ccc !important;
+            background-color: #6c757d !important;
+            color: white !important;
+            cursor: not-allowed !important;
+        }
+
+        #submit-btn:not(:disabled) {
+            background-color: #0d6efd !important;
+            border-color: #0d6efd !important;
+            cursor: pointer !important;
+        }
+
+        /* --- 팝업 스타일 --- */
+        .summary-popup-container {
+            display: none;
+            position: fixed;
+            z-index: 1000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4);
+            justify-content: center;
+            align-items: center;
+        }
+        
+        #result-popup .popup-content {
+            width: 50%;
+            max-width: 700px;
+            position: absolute;
+            left: 25%;
+            top: 15%;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 5px 20px rgba(0,0,0,0.25);
+            display: flex;
+            flex-direction: column;
+            max-height: 80vh;
+        }
+
+        #result-popup-header {
+            padding: 10px 20px;
+            border-bottom: 1px solid #eee;
+            cursor: move;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            background-color: #f7f7f7;
+            border-top-left-radius: 8px;
+            border-top-right-radius: 8px;
+        }
+
+        #result-popup-body {
+            padding: 20px;
+            overflow-y: auto;
+            line-height: 1.7;
+        }
+
+        .popup-close-btn {
+            background: none;
+            border: none;
+            font-size: 1.5rem;
+            cursor: pointer;
+            color: #888;
+        }
+
+        .popup-footer {
+            padding: 15px 20px;
+            border-top: 1px solid #eee;
+            text-align: right;
+            background-color: #f7f7f7;
+            border-bottom-left-radius: 8px;
+            border-bottom-right-radius: 8px;
+        }
+
+        #new-problem-btn {
+            padding: 10px 20px !important;
+            font-size: 1rem !important;
+            background-color: #198754 !important; /* Green color */
+            color: white !important;
+            border: none !important;
+            border-radius: 4px !important;
+            cursor: pointer !important;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <a>논증 구분하기</a>
+        </div>
+        <div class="navbar-menu">
+            <a href="#" class="mode-btn active" id="practice-mode-btn">연습하기</a>
+            <a href="#" class="mode-btn" id="game-mode-btn">게임하기</a>
+        </div>
+        <div class="navbar-right">
+            <a href="index.html" class="mode-btn">메인 페이지</a>
+        </div>
+    </nav>
+
+    <main class="container distinction-container">
+        <div class="distinction-col left-panel" id="passage-col">
+            <div class="input-group full-width">
+                <label for="keyword-input">키워드</label>
+                <div class="keyword-input-wrapper">
+                    <input type="text" id="keyword-input" placeholder="키워드를 입력하세요...">
+                    <button id="generate-btn" class="button">제시문 생성</button>
+                </div>
+            </div>
+            <div id="passage-display" class="passage-box">
+                <p class="placeholder-text">키워드를 입력하고 '제시문 생성' 버튼을 눌러주세요.</p>
+            </div>
+        </div>
+
+        <div class="distinction-col right-panel" id="quiz-col">
+            <div class="input-group full-width">
+                <label for="subject-input">제시문의 핵심 주제는 무엇인가요?</label>
+                <input type="text" id="subject-input" placeholder="핵심 주제를 한 문장으로 입력하세요...">
+            </div>
+
+            <div class="input-group">
+                <label>제시문의 종류는 무엇인가요?</label>
+                <div class="choice-buttons">
+                    <button class="choice-btn" data-type="논증">논증</button>
+                    <button class="choice-btn" data-type="인과적 설명">인과적 설명</button>
+                    <button class="choice-btn" data-type="기타">기타</button>
+                </div>
+            </div>
+
+            <button id="submit-btn" class="button" disabled>모범답안 확인</button>
+        </div>
+    </main>
+
+    <!-- 모범답안 및 해설 팝업 -->
+    <div id="result-popup" class="summary-popup-container" style="display: none;">
+        <div class="popup-content">
+            <div class="popup-header" id="result-popup-header">
+                <span class="popup-title">모범답안 및 해설</span>
+                <button id="result-popup-close-btn" class="popup-close-btn">&times;</button>
+            </div>
+            <div id="result-popup-body" class="popup-body"></div>
+            <div class="popup-footer">
+                <button id="new-problem-btn">새 문제 풀기</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="distinguish-argument-script.js?v=2.0"></script>
+</body>
+</html>

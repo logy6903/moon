@@ -1,0 +1,248 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>논리적 평가 글쓰기 학습</title>
+    <link rel="icon" href="data:,">
+    <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;700&display=swap">
+    <link rel="stylesheet" href="logical-evaluation-styles.css">
+</head>
+<body>
+    <nav class="top-nav">
+        <div class="nav-title">
+            <a href="index.html" style="text-decoration: none; color: inherit;">논리적 평가 글쓰기 학습</a>
+        </div>
+        <div class="nav-mode-selector">
+            <button id="guideline-practice-btn" class="nav-mode-btn active">평가 지침 연습</button>
+            <button id="advanced-practice-btn" class="nav-mode-btn">심화 연습</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        <div class="main-content">
+            <div id="guideline-practice-content">
+                <div class="left-panel">
+                    <div class="evaluation-criteria">
+                        <h2>1. 평가 지침 선택 <span style="font-size:16px; color:#666; font-weight:normal; margin-left:8px;">(3개까지 선택 가능)</span></h2>
+                        <p class="selection-guide">평가하고 싶은 지침을 1개 이상, 최대 3개까지 선택하세요.</p>
+                        <form id="criteria-form">
+                            <div class="criteria-grid">
+                                <label><input type="checkbox" name="criteria" value="애매모호해?"><span>애매모호해?</span></label>
+                                <label><input type="checkbox" name="criteria" value="거짓은 없어?"><span>거짓은 없어?</span></label>
+                                <label><input type="checkbox" name="criteria" value="결론이 쟁점에 맞아?"><span>결론이 쟁점에 맞아?</span></label>
+                                <label><input type="checkbox" name="criteria" value="근거가 결론을 뒷받침해?"><span>근거가 결론을 뒷받침해?</span></label>
+                                <label><input type="checkbox" name="criteria" value="다룰만한 가치가 있어?"><span>다룰만한 가치가 있어?</span></label>
+                                <label><input type="checkbox" name="criteria" value="논리적으로 일관적이야?"><span>논리적으로 일관적이야?</span></label>
+                                <label><input type="checkbox" name="criteria" value="결론은 충분히 정당화 돼?"><span>결론은 충분히 정당화 돼?</span></label>
+                                <label><input type="checkbox" name="criteria" value="논의가 공정해?"><span>논의가 공정해?</span></label>
+                                <label><input type="checkbox" name="criteria" value="쟁점에 다각도로 깊이 있게 접근해?"><span>쟁점에 다각도로 깊이 있게 접근해?</span></label>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="generation-controls">
+                        <div class="difficulty-group">
+                            <span class="difficulty-title">2. 난이도</span>
+                            <div class="difficulty-selector" id="difficulty-form">
+                                <label class="selected"><input type="radio" name="difficulty" value="easy" checked><span>쉬움</span></label>
+                                <label><input type="radio" name="difficulty" value="normal"><span>보통</span></label>
+                                <label><input type="radio" name="difficulty" value="hard"><span>어려움</span></label>
+                            </div>
+                        </div>
+                        <button id="generate-btn">제시문 생성</button>
+                    </div>
+                    <div class="prompt-display-container">
+                        <h2>생성된 제시문</h2>
+                        <div id="prompt-display">
+                            <p class="placeholder">좌측에서 평가 지침과 난이도를 선택 후 '제시문 생성' 버튼을 누르면, AI가 작성한 글이 여기에 나타납니다.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="right-panel">
+                    <div class="tab-header">
+                        <div class="tab-buttons">
+                            <button id="summary-tab-btn" class="tab-btn active">요약</button>
+                            <button id="evaluation-tab-btn" class="tab-btn">평가</button>
+                        </div>
+                    </div>
+
+                    <div class="tab-content">
+                        <div id="summary-tab-content" class="tab-panel active">
+                            <div class="input-group">
+                                <label>쟁점은?</label>
+                                <textarea class="summary-input right-panel-input" placeholder="제시문의 핵심 쟁점을 입력하세요." disabled></textarea>
+                            </div>
+                            <div class="input-group">
+                                <label>주장은?</label>
+                                <textarea class="summary-input right-panel-input" placeholder="제시문의 주장을 입력하세요." disabled></textarea>
+                            </div>
+                            <div id="reasons-container">
+                                <div class="reason-group">
+                                    <div class="input-group">
+                                        <label>근거는?</label>
+                                        <textarea class="summary-input right-panel-input" placeholder="주장을 뒷받침하는 근거를 입력하세요." disabled></textarea>
+                                    </div>
+                                    <div class="basis-container">
+                                        <!-- "근거의 근거"가 여기에 추가됩니다. -->
+                                    </div>
+                                    <button class="add-basis-btn" disabled>+ 근거의 근거 추가</button>
+                                </div>
+                            </div>
+                            <button id="add-reason-btn" class="add-btn" disabled>+ 근거 추가</button>
+                        </div>
+
+                        <div id="evaluation-tab-content" class="tab-panel">
+                            <div class="evaluation-header">
+                                <select class="guideline-select-small" disabled>
+                                    <option value="">위반 지침 선택</option>
+                                    <option value="애매모호해?">애매모호해?</option>
+                                    <option value="거짓은 없어?">거짓은 없어?</option>
+                                    <option value="결론이 쟁점에 맞아?">결론이 쟁점에 맞아?</option>
+                                    <option value="근거가 결론을 뒷받침해?">근거가 결론을 뒷받침해?</option>
+                                    <option value="다룰만한 가치가 있어?">다룰만한 가치가 있어?</option>
+                                    <option value="논리적으로 일관적이야?">논리적으로 일관적이야?</option>
+                                    <option value="결론은 충분히 정당화 돼?">결론은 충분히 정당화 돼?</option>
+                                    <option value="논의가 공정해?">논의가 공정해?</option>
+                                    <option value="쟁점에 다각도로 깊이 있게 접근해?">쟁점에 다각도로 깊이 있게 접근해?</option>
+                                </select>
+                            </div>
+                            <div id="evaluations-container">
+                                <div class="evaluation-item">
+                                    <div class="input-group">
+                                        <label>문제가 되는 부분은?</label>
+                                        <textarea class="problematic-part-input right-panel-input" placeholder="제시문에서 논리적 오류나 문제가 있는 부분을 입력하세요." disabled></textarea>
+                                    </div>
+                                    <div class="input-group">
+                                        <label>문제인 이유는?</label>
+                                        <textarea class="violation-reason-input right-panel-input" placeholder="왜 문제가 되는지 그 이유를 설명하세요." disabled></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            <button id="add-evaluation-btn" class="add-btn" disabled>+ 평가 추가하기</button>
+                        </div>
+                    </div>
+                    <button id="show-answer-btn" disabled>모범답안 확인</button>
+                </div>
+            </div>
+            <div id="advanced-practice-content" style="display: none;">
+                <div class="left-panel">
+                    <div class="generation-controls">
+                        <div class="difficulty-group">
+                            <span class="difficulty-title">난이도 선택</span>
+                            <div class="difficulty-selector" id="advanced-difficulty-form">
+                                <label class="selected"><input type="radio" name="advanced-difficulty" value="easy" checked><span>쉬움</span></label>
+                                <label><input type="radio" name="advanced-difficulty" value="normal"><span>보통</span></label>
+                                <label><input type="radio" name="advanced-difficulty" value="hard"><span>어려움</span></label>
+                            </div>
+                        </div>
+                        <button id="advanced-generate-btn">제시문 생성</button>
+                    </div>
+                    <div class="prompt-display-container">
+                        <h2>생성된 제시문</h2>
+                        <div id="advanced-prompt-display">
+                            <p class="placeholder">난이도를 선택 후 '제시문 생성' 버튼을 누르면, AI가 작성한 글이 여기에 나타납니다.</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="right-panel">
+                    <div class="tab-header">
+                        <div class="tab-buttons">
+                            <button id="advanced-summary-tab-btn" class="tab-btn active">요약</button>
+                            <button id="advanced-evaluation-tab-btn" class="tab-btn">평가</button>
+                        </div>
+                        <div class="guideline-selector-wrapper" style="display: none;">
+                            <select id="advanced-main-guideline-select" class="guideline-select compact" disabled>
+                                <option value="">지침 선택</option>
+                                <option value="애매모호해?">애매모호해?</option>
+                                <option value="거짓은 없어?">거짓은 없어?</option>
+                                <option value="결론이 쟁점에 맞아?">결론이 쟁점에 맞아?</option>
+                                <option value="근거가 결론을 뒷받침해?">근거가 결론을 뒷받침해?</option>
+                                <option value="다룰만한 가치가 있어?">다룰만한 가치가 있어?</option>
+                                <option value="논리적으로 일관적이야?">논리적으로 일관적이야?</option>
+                                <option value="결론은 충분히 정당화 돼?">결론은 충분히 정당화 돼?</option>
+                                <option value="논의가 공정해?">논의가 공정해?</option>
+                                <option value="쟁점에 다각도로 깊이 있게 접근해?">쟁점에 다각도로 깊이 있게 접근해?</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="tab-content">
+                        <div id="advanced-summary-tab-content" class="tab-panel active">
+                            <div class="input-group">
+                                <label>쟁점은?</label>
+                                <textarea class="summary-input right-panel-input" placeholder="제시문의 핵심 쟁점을 입력하세요." disabled></textarea>
+                            </div>
+                            <div class="input-group">
+                                <label>주장은?</label>
+                                <textarea class="summary-input right-panel-input" placeholder="제시문의 주장을 입력하세요." disabled></textarea>
+                            </div>
+                            <div id="advanced-reasons-container">
+                                <div class="reason-group">
+                                    <div class="input-group">
+                                        <label>근거는?</label>
+                                        <textarea class="summary-input right-panel-input" placeholder="주장을 뒷받침하는 근거를 입력하세요." disabled></textarea>
+                                    </div>
+                                    <div class="basis-container">
+                                        <!-- "근거의 근거"가 여기에 추가됩니다. -->
+                                    </div>
+                                    <button class="add-basis-btn" disabled>+ 근거의 근거 추가</button>
+                                </div>
+                            </div>
+                            <button id="advanced-add-reason-btn" class="add-btn" disabled>+ 근거 추가</button>
+                        </div>
+
+                        <div id="advanced-evaluation-tab-content" class="tab-panel">
+                            <div class="evaluation-header">
+                                <select class="guideline-select-small" disabled>
+                                    <option value="">위반 지침 선택</option>
+                                    <option value="애매모호해?">애매모호해?</option>
+                                    <option value="거짓은 없어?">거짓은 없어?</option>
+                                    <option value="결론이 쟁점에 맞아?">결론이 쟁점에 맞아?</option>
+                                    <option value="근거가 결론을 뒷받침해?">근거가 결론을 뒷받침해?</option>
+                                    <option value="다룰만한 가치가 있어?">다룰만한 가치가 있어?</option>
+                                    <option value="논리적으로 일관적이야?">논리적으로 일관적이야?</option>
+                                    <option value="결론은 충분히 정당화 돼?">결론은 충분히 정당화 돼?</option>
+                                    <option value="논의가 공정해?">논의가 공정해?</option>
+                                    <option value="쟁점에 다각도로 깊이 있게 접근해?">쟁점에 다각도로 깊이 있게 접근해?</option>
+                                </select>
+                            </div>
+                            <div id="advanced-evaluations-container">
+                                <div class="evaluation-item">
+                                    <div class="input-group">
+                                        <label>문제가 되는 부분은?</label>
+                                        <textarea class="problematic-part-input right-panel-input" placeholder="제시문에서 논리적 오류나 문제가 있는 부분을 입력하세요." disabled></textarea>
+                                    </div>
+                                    <div class="input-group">
+                                        <label>문제인 이유는?</label>
+                                        <textarea class="violation-reason-input right-panel-input" placeholder="왜 문제가 되는지 그 이유를 설명하세요." disabled></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                            <button id="advanced-add-evaluation-btn" class="add-btn" disabled>+ 평가 추가하기</button>
+                        </div>
+                    </div>
+                    <button id="advanced-show-answer-btn" disabled>모범답안 확인</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="loading-spinner" style="display: none;">
+        <div class="spinner"></div>
+        <p>AI가 열심히 글을 생성하고 있습니다. 잠시만 기다려주세요...</p>
+    </div>
+
+    <div id="modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 class="modal-title">모범 답안</h2>
+                <span class="close-btn">&times;</span>
+            </div>
+            <div id="modal-body"></div>
+        </div>
+    </div>
+    <script src="logical-evaluation-script.js"></script>
+</body>
+</html> 

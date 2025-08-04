@@ -1,0 +1,908 @@
+/* 기본 설정 */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font-family: 'Noto Sans KR', sans-serif;
+    line-height: 1.6;
+    color: #333;
+    background-color: #f8f9fa;
+    padding-top: 60px; /* 고정된 메뉴바 높이만큼 패딩 추가 */
+    height: 100vh; /* 화면 전체 높이 */
+    overflow: hidden; /* 페이지 전체 스크롤 숨김 */
+}
+
+/* 상단 고정 메뉴바 */
+.top-nav {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    background: white;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+    padding: 0 2rem;
+    height: 60px;
+    display: flex;
+    justify-content: space-between; /* 양 끝으로 정렬 */
+    align-items: center;
+    z-index: 1000;
+}
+
+.nav-title {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: #4a67e8;
+}
+
+/* 메뉴바 안의 모드 선택 */
+.nav-mode-selector {
+    display: flex;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+.nav-mode-btn {
+    padding: 0.5rem 1.5rem;
+    font-size: 0.9rem;
+    font-weight: 500;
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.nav-mode-btn:not(:last-child) {
+    border-right: 1px solid #ddd;
+}
+
+.nav-mode-btn.active {
+    background-color: #4a67e8;
+    color: white;
+}
+
+.nav-mode-btn:hover:not(.active) {
+    background-color: #f1f3f5;
+}
+
+
+/* 컨테이너 */
+.container {
+    max-width: 1600px;
+    margin: 2rem auto;
+    padding: 0 1rem;
+    height: calc(100vh - 120px); /* 화면 높이에서 상단 여백 제외 */
+    overflow: hidden; /* 하단 영역 숨김 */
+}
+
+/* 메인 콘텐츠 영역 */
+.main-content {
+    height: 100%;
+    overflow: hidden;
+}
+
+#guideline-practice-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: stretch; /* 패널 높이 동일하게 */
+    height: 100%; /* 컨테이너 전체 높이 사용 */
+}
+
+.left-panel, .right-panel {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+    height: 100%; /* 부모 높이에 맞춤 */
+    overflow: hidden; /* 넘치는 내용 숨김 */
+}
+
+h2 {
+    font-size: 1.1rem;
+    font-weight: 600;
+    margin-bottom: 1rem;
+    color: #333;
+    border-bottom: none;
+    padding-bottom: 0;
+}
+
+/* 왼쪽 패널: 컨트롤 영역 */
+.evaluation-criteria, .difficulty-level, .generation-container {
+    margin-bottom: 1.5rem;
+}
+
+.evaluation-criteria {
+    margin-bottom: 1rem;
+}
+
+.selection-guide {
+    display: none; /* 설명 문구 숨기기 */
+}
+
+#criteria-form {
+    margin-bottom: 0;
+}
+
+.criteria-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 0.5rem;
+}
+
+.criteria-grid label {
+    padding: 0;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    text-align: center;
+    transition: all 0.2s ease;
+    background-color: #f8f9fa;
+}
+
+.criteria-grid label:hover {
+    background-color: #e9ecef;
+}
+
+.criteria-grid input[type="checkbox"] {
+    display: none; /* 체크박스 숨기기 */
+}
+
+.criteria-grid span {
+    display: block;
+    padding: 0.6rem 0.5rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+}
+
+/* 체크박스 선택 시 스타일 변경 */
+.criteria-grid input[type="checkbox"]:checked + span {
+    background-color: #4a67e8;
+    color: white;
+    font-weight: 500;
+    border-radius: 5px;
+}
+
+/* 생성 컨트롤 (난이도 + 생성 버튼) */
+.generation-controls {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-top: 0; /* 여백 제거 */
+}
+
+.difficulty-group {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+}
+
+.difficulty-title {
+    font-size: 1.1rem;      /* h2와 동일하게 */
+    font-weight: 600;   /* h2와 동일하게 */
+    color: #333;         /* h2와 동일하게 */
+}
+
+.difficulty-selector {
+    display: flex;
+    border-radius: 6px;
+    overflow: hidden;
+    border: 1px solid #ccc;
+}
+
+.difficulty-selector label {
+    padding: 0;
+}
+
+.difficulty-selector span {
+    display: block;
+    padding: 0.4rem 1rem;
+    font-size: 0.8rem;
+    background-color: #f8f9fa;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.difficulty-selector label:not(:last-child) span {
+    border-right: 1px solid #ccc;
+}
+
+.difficulty-selector input[type="radio"] {
+    display: none;
+}
+
+.difficulty-selector input[type="radio"]:checked + span {
+    background-color: #4a67e8;
+    color: white;
+    font-weight: 500;
+}
+
+#generate-btn {
+    padding: 0.5rem 1.2rem;
+    font-size: 0.9rem;
+    font-weight: 600;
+    background-color: #4a67e8;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+#generate-btn:hover {
+    background-color: #354fbc;
+}
+
+
+/* 제시문 표시 영역 (왼쪽 패너로 이동) */
+.prompt-display-container {
+    margin-top: 1.5rem;
+    flex-grow: 1; /* 남은 공간 모두 차지 */
+    display: flex;
+    flex-direction: column;
+}
+
+#prompt-display {
+    flex-grow: 1; /* 남은 공간 모두 차지 */
+    min-height: 250px; /* 최소 높이 확보 */
+    background: #f8f9fa;
+    border-radius: 8px;
+    padding: 1rem;
+    line-height: 1.6;
+    font-size: 0.9rem;
+    border: 1px solid #eee;
+}
+
+#prompt-display .placeholder {
+    color: #888;
+}
+
+/* 오른쪽 패널 탭 UI */
+.tab-buttons {
+    display: flex;
+    border-bottom: 2px solid #ddd;
+    margin-bottom: 1.5rem;
+}
+
+.tab-btn {
+    padding: 0.8rem 1.5rem;
+    font-size: 1rem;
+    font-weight: 500;
+    border: none;
+    background-color: transparent;
+    cursor: pointer;
+    color: #888;
+    position: relative;
+    bottom: -2px;
+}
+
+.tab-btn.active {
+    color: #4a67e8;
+    font-weight: 600;
+    border-bottom: 2px solid #4a67e8;
+}
+
+.tab-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+}
+
+.tab-panel {
+    display: none;
+    flex-direction: column;
+    flex-grow: 1;
+}
+
+.tab-panel.active {
+    display: flex;
+}
+
+.input-group {
+    margin-bottom: 1rem;
+    display: flex;
+    flex-direction: column;
+}
+
+.input-group label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+}
+
+.right-panel-input {
+    width: 100%;
+    padding: 0.8rem;
+    border-radius: 6px;
+    border: 1px solid #ddd;
+    resize: vertical;
+    font-size: 0.9rem;
+    min-height: 80px;
+}
+
+#reasons-container {
+    flex-grow: 1;
+    overflow-y: auto;
+}
+
+/* 평가 영역 스크롤 추가 */
+#evaluations-container {
+    flex-grow: 1;
+    overflow-y: auto;
+    max-height: 400px; /* 최대 높이 제한 */
+    padding-right: 8px; /* 스크롤바와 내용 간격 */
+}
+
+/* 평가 항목을 단순하게 스타일링 */
+.evaluation-item {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+.evaluation-item .input-group {
+    margin-bottom: 0;
+}
+
+.evaluation-item .input-group label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+.evaluation-item .right-panel-input {
+    padding: 0.8rem;
+    font-size: 0.9rem;
+    min-height: 80px;
+    resize: vertical;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+}
+
+#evaluations-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+#evaluations-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+#evaluations-container::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+#evaluations-container::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* 심화 연습 모드 평가 영역 스크롤 */
+#advanced-evaluations-container {
+    flex-grow: 1;
+    overflow-y: auto;
+    max-height: 400px; /* 최대 높이 제한 */
+    padding-right: 8px; /* 스크롤바와 내용 간격 */
+}
+
+/* 심화 연습 모드도 동일한 높이 제한 */
+#advanced-practice-content {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    align-items: stretch;
+    height: 100%; /* 컨테이너 전체 높이 사용 */
+}
+
+#advanced-evaluations-container::-webkit-scrollbar {
+    width: 6px;
+}
+
+#advanced-evaluations-container::-webkit-scrollbar-track {
+    background: #f1f1f1;
+    border-radius: 3px;
+}
+
+#advanced-evaluations-container::-webkit-scrollbar-thumb {
+    background: #c1c1c1;
+    border-radius: 3px;
+}
+
+#advanced-evaluations-container::-webkit-scrollbar-thumb:hover {
+    background: #a8a8a8;
+}
+
+/* 심화 연습 모드 평가 항목도 동일하게 단순하게 */
+#advanced-evaluations-container .evaluation-item {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    margin-bottom: 1.5rem;
+}
+
+#advanced-evaluations-container .evaluation-item .input-group {
+    margin-bottom: 0;
+}
+
+#advanced-evaluations-container .evaluation-item .input-group label {
+    font-size: 0.9rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: #333;
+}
+
+#advanced-evaluations-container .evaluation-item .right-panel-input {
+    padding: 0.8rem;
+    font-size: 0.9rem;
+    min-height: 80px;
+    resize: vertical;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+}
+
+/* 평가 추가 버튼 스타일 */
+#add-evaluation-btn, #advanced-add-evaluation-btn {
+    align-self: flex-start;
+    width: auto;
+    font-size: 0.9rem;
+    padding: 0.8rem 1.5rem;
+    background: #4a67e8;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.2s ease;
+}
+
+#add-evaluation-btn:hover, #advanced-add-evaluation-btn:hover {
+    background: #3b5ce0;
+}
+
+#add-evaluation-btn:disabled, #advanced-add-evaluation-btn:disabled {
+    background: #ccc;
+    cursor: not-allowed;
+}
+
+/* 하단 요소들 완전히 숨김 */
+#loading-spinner, #modal {
+    position: fixed;
+    z-index: 9999;
+}
+
+/* 평가 탭 상단 드롭다운 헤더 */
+.evaluation-header {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid #eee;
+}
+
+/* 작은 크기의 위반 지침 선택 드롭다운 */
+.guideline-select-small {
+    width: 150px;
+    padding: 0.4rem 0.5rem;
+    font-size: 0.8rem;
+    border: 1px solid #ddd;
+    border-radius: 4px;
+    background-color: white;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.guideline-select-small:focus {
+    outline: none;
+    border-color: #4a67e8;
+    box-shadow: 0 0 0 2px rgba(74, 103, 232, 0.1);
+}
+
+.guideline-select-small:disabled {
+    background-color: #f8f9fa;
+    color: #6c757d;
+    cursor: not-allowed;
+}
+
+/* 평가 항목 간격 조정 (기존 CSS와 병합) */
+
+.reason-group {
+    border: 1px solid #eee;
+    padding: 1rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    background-color: #fcfcfc;
+}
+
+.reason-group .input-group {
+    margin-bottom: 0.5rem;
+}
+
+.basis-container {
+    margin-left: 1rem;
+    padding-left: 1rem;
+    border-left: 2px solid #e9ecef;
+    margin-top: 0.5rem;
+}
+
+.add-basis-btn {
+    font-size: 0.8rem;
+    padding: 0.3rem 0.8rem;
+    background-color: #f8f9fa;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    cursor: pointer;
+    margin-top: 0.5rem;
+    margin-left: 1rem;
+    color: #555;
+}
+
+.add-basis-btn:hover:not(:disabled) {
+    background-color: #e9ecef;
+}
+
+.add-btn {
+    align-self: flex-start;
+    padding: 0.5rem 1rem;
+    font-size: 0.85rem;
+    background-color: #f1f3f5;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.add-btn:hover {
+    background-color: #e9ecef;
+}
+
+#show-answer-btn {
+    display: block;
+    width: 100%;
+    margin-top: 1rem;
+    padding: 1rem;
+    font-size: 1rem;
+    font-weight: 600;
+    background-color: #28a745;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+#show-answer-btn:disabled {
+    background-color: #aaa;
+    cursor: not-allowed;
+}
+
+#show-answer-btn:hover:not(:disabled) {
+    background-color: #218838;
+}
+
+
+/* 로딩 스피너 */
+#loading-spinner {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    z-index: 2000;
+}
+
+#loading-spinner .spinner {
+    width: 50px;
+    height: 50px;
+    border: 5px solid #f3f3f3;
+    border-top: 5px solid #4a67e8;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin-bottom: 1rem;
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* 모달 */
+.modal {
+    display: none;
+    position: fixed;
+    z-index: 1001;
+    left: 0;
+    top: 0;
+    width: 100%;
+    height: 100%;
+    overflow: auto;
+    background-color: rgba(0,0,0,0.6);
+}
+
+.modal-content {
+    background-color: #fefefe;
+    margin: 10% auto;
+    padding: 2rem;
+    border: 1px solid #888;
+    width: 80%;
+    max-width: 800px;
+    border-radius: 12px;
+    position: absolute;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.3);
+    left: 50%;
+    top: 10%;
+    transform: translateX(-50%);
+}
+
+.modal-header {
+    cursor: move;
+    padding: 1rem 2rem;
+    margin: -2rem -2rem 1rem -2rem;
+    background: linear-gradient(135deg, #4a67e8, #5a7ff8);
+    color: white;
+    border-radius: 12px 12px 0 0;
+    user-select: none;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+}
+
+.modal-title {
+    font-size: 1.2rem;
+    font-weight: 600;
+    margin: 0;
+}
+
+.modal-content.dragging {
+    transition: none !important;
+}
+
+.close-btn {
+    color: white;
+    font-size: 28px;
+    font-weight: bold;
+    cursor: pointer;
+    background: none;
+    border: none;
+    padding: 0;
+    opacity: 0.8;
+}
+
+.close-btn:hover,
+.close-btn:focus {
+    opacity: 1;
+    text-decoration: none;
+}
+
+#modal-body h3 {
+    margin-top: 1.5rem;
+    margin-bottom: 1rem;
+    border-bottom: 2px solid #eee;
+    padding-bottom: 0.5rem;
+}
+#modal-body h4 {
+    margin-top: 1rem;
+    margin-bottom: 0.5rem;
+    color: #4a67e8;
+}
+
+.analysis-item {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    background: #f8f9fa;
+    border-radius: 8px;
+    border-left: 4px solid #4a67e8;
+}
+.analysis-item p {
+    margin-bottom: 0.5rem;
+}
+
+/* 반응형 디자인 */
+@media (max-width: 992px) {
+    .top-nav {
+        flex-direction: column;
+        height: auto;
+        padding: 0.5rem 1rem;
+    }
+    .nav-title {
+        margin-bottom: 0.5rem;
+    }
+    .nav-mode-selector {
+        width: 100%;
+        justify-content: center;
+    }
+    .nav-mode-btn {
+        flex: 1;
+    }
+    body {
+        padding-top: 100px;
+    }
+    #guideline-practice-content {
+        grid-template-columns: 1fr;
+    }
+    #advanced-practice-content {
+        grid-template-columns: 1fr 1fr !important;
+        display: grid !important;
+    }
+    .criteria-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+
+/* 심화 연습 모듈 레이아웃 */
+#advanced-practice-content {
+    display: grid !important;
+    grid-template-columns: 1fr 1fr !important;
+    gap: 2rem;
+    align-items: stretch;
+    width: 100%;
+    height: auto;
+}
+
+#advanced-practice-content .left-panel {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+}
+
+#advanced-practice-content .right-panel {
+    background: white;
+    border-radius: 12px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.05);
+    padding: 1.5rem;
+    display: flex;
+    flex-direction: column;
+}
+
+/* 평가 항목 스타일 */
+.evaluation-item {
+    margin-bottom: 1.5rem;
+    padding: 1rem;
+    border: 1px solid #e9ecef;
+    border-radius: 8px;
+    background-color: #f8f9fa;
+}
+
+.evaluation-item:last-child {
+    margin-bottom: 0;
+}
+
+/* 지침 선택 드롭다운 스타일 */
+.guideline-select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    font-size: 0.9rem;
+    font-family: 'Noto Sans KR', sans-serif;
+    background-color: white;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.guideline-select:focus {
+    outline: none;
+    border-color: #4a67e8;
+    box-shadow: 0 0 0 2px rgba(74, 103, 232, 0.1);
+}
+
+.guideline-select:disabled {
+    background-color: #f8f9fa;
+    color: #6c757d;
+    cursor: not-allowed;
+}
+
+/* 평가/근거 컨테이너 */
+#evaluations-container, #advanced-evaluations-container {
+    margin-bottom: 1rem;
+}
+
+/* 평가 추가 버튼 스타일 개선 */
+#add-evaluation-btn, #advanced-add-evaluation-btn {
+    background: linear-gradient(135deg, #28a745, #20c997);
+    color: white;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    font-weight: 500;
+    cursor: pointer;
+    transition: all 0.3s ease;
+    margin-top: 0.5rem;
+}
+
+#add-evaluation-btn:hover:not(:disabled), #advanced-add-evaluation-btn:hover:not(:disabled) {
+    background: linear-gradient(135deg, #218838, #1ea087);
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(40, 167, 69, 0.3);
+}
+
+#add-evaluation-btn:disabled, #advanced-add-evaluation-btn:disabled {
+    background: #6c757d;
+    cursor: not-allowed;
+    transform: none;
+    box-shadow: none;
+}
+
+/* 탭 헤더 레이아웃 */
+.tab-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1rem;
+    gap: 1rem;
+}
+
+.tab-buttons {
+    display: flex;
+    border: 1px solid #ddd;
+    border-radius: 8px;
+    overflow: hidden;
+    flex-shrink: 0;
+}
+
+.guideline-selector-wrapper {
+    flex-shrink: 0;
+}
+
+/* 컴팩트 드롭다운 스타일 */
+.guideline-select.compact {
+    width: 200px;
+    padding: 0.5rem 0.75rem;
+    font-size: 0.85rem;
+    border: 1px solid #ddd;
+    border-radius: 6px;
+    background-color: white;
+    cursor: pointer;
+    transition: border-color 0.2s ease;
+}
+
+.guideline-select.compact:focus {
+    outline: none;
+    border-color: #4a67e8;
+    box-shadow: 0 0 0 2px rgba(74, 103, 232, 0.1);
+}
+
+.guideline-select.compact:disabled {
+    background-color: #f8f9fa;
+    color: #6c757d;
+    cursor: not-allowed;
+}
+
+/* 반응형 조정 */
+@media (max-width: 768px) {
+    .tab-header {
+        flex-direction: column;
+        align-items: stretch;
+    }
+    
+    .guideline-select.compact {
+        width: 100%;
+    }
+    
+    /* 작은 화면에서도 심화 연습은 좌우단 유지 */
+    #advanced-practice-content {
+        grid-template-columns: 1fr 1fr !important;
+        gap: 1rem;
+    }
+}
+
+/* 매우 작은 화면에서만 심화 연습을 상하단으로 변경 */
+@media (max-width: 480px) {
+    #advanced-practice-content {
+        grid-template-columns: 1fr !important;
+        gap: 1rem;
+    }
+}

@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>비교하기</title>
+    <link rel="stylesheet" href="style.css?v=4.5">
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <a>분석적 요약하기</a>
+        </div>
+        <div class="navbar-menu">
+            <a href="argument-summary.html" class="mode-btn">논증 요약하기</a>
+            <a href="argument-summary.html?tab=non-argument" class="mode-btn">비논증 요약하기</a>
+            <a href="image-summary.html" class="mode-btn">이미지 요약하기</a>
+            <a href="compare.html" class="mode-btn active">비교하기</a>
+        </div>
+        <div class="navbar-right">
+            <a href="index.html" class="mode-btn">메인 페이지</a>
+        </div>
+    </nav>
+
+    <main class="container compare-container">
+        <!-- 왼쪽 단 -->
+        <div class="column">
+            <div class="input-area">
+                <div class="form-group-inline">
+                    <div class="form-group">
+                        <label>유형:</label>
+                        <label class="radio-label"><input type="radio" name="passage-type" value="argument" checked> 논증</label>
+                        <label class="radio-label"><input type="radio" name="passage-type" value="causal"> 인과적 설명문</label>
+                    </div>
+                    <span class="control-separator">/</span>
+                    <div class="form-group">
+                        <label>난이도:</label>
+                        <label class="radio-label"><input type="radio" name="difficulty" value="easy" checked> 쉬움</label>
+                        <label class="radio-label"><input type="radio" name="difficulty" value="normal"> 보통</label>
+                        <label class="radio-label"><input type="radio" name="difficulty" value="hard"> 어려움</label>
+                    </div>
+                </div>
+                <div class="form-group-inline keyword-section">
+                    <input type="text" id="keyword-input" placeholder="키워드를 입력하세요">
+                    <button id="generate-passages-btn" class="action-btn">제시문 생성</button>
+                </div>
+            </div>
+            <div class="passage-container">
+                <div id="passage-a" class="passage-box">
+                    <div class="scrollable-content">
+                        <span class="passage-label">(가)</span>
+                        <div class="passage-text"></div>
+                    </div>
+                    <button class="detail-btn" data-passage="a" style="display: none;">자세히 보기</button>
+                </div>
+                <div id="passage-b" class="passage-box">
+                    <div class="scrollable-content">
+                        <span class="passage-label">(나)</span>
+                        <div class="passage-text"></div>
+                    </div>
+                    <button class="detail-btn" data-passage="b" style="display: none;">자세히 보기</button>
+                </div>
+            </div>
+
+            <!-- 제시문 상세 보기 패널 (왼쪽 컬럼 내부로 이동) -->
+            <div id="detail-panel" class="detail-panel-container" style="display: none;">
+                <div class="detail-panel-content">
+                    <div class="detail-panel-header">
+                        <h3 id="detail-panel-title"></h3>
+                        <button id="detail-panel-close-btn" class="popup-close-btn">&times;</button>
+                    </div>
+                    <div id="detail-panel-body" class="scrollable-content">
+                        <!-- 제시문 전체 내용이 여기에 들어갑니다. -->
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- 오른쪽 단 -->
+        <div class="column right-column">
+            <div id="analysis-section-argument" class="analysis-section">
+                <div class="column-header">
+                    <h2>논증 분석하기</h2>
+                </div>
+                <div class="scrollable-content">
+                    <form id="analysis-form-argument">
+                        <div class="analysis-group">
+                            <label for="common-issue">공통 쟁점</label>
+                            <textarea id="common-issue" class="form-control" rows="2" placeholder="두 제시문이 공통으로 다루는 쟁점을 입력하세요."></textarea>
+                        </div>
+                        <div class="analysis-group">
+                            <label>주장</label>
+                            <div class="stance-container">
+                                <textarea id="claim-a" class="form-control" rows="3" placeholder="(가)의 주장을 입력하세요."></textarea>
+                                <textarea id="claim-b" class="form-control" rows="3" placeholder="(나)의 주장을 입력하세요."></textarea>
+                            </div>
+                        </div>
+                        
+                        <div id="dynamic-issues-container">
+                            <!-- 세부 쟁점과 입장을 담는 동적 필드 -->
+                        </div>
+
+                        <div class="form-group button-group">
+                            <button type="button" id="add-sub-issue-btn" class="action-btn secondary">+ 세부 쟁점 추가</button>
+                            <button type="button" id="remove-sub-issue-btn" class="action-btn secondary">- 세부 쟁점 삭제</button>
+                        </div>
+
+                        <hr>
+
+                        <div class="analysis-group">
+                            <label for="argument-summary-input">종합 비교</label>
+                            <textarea id="argument-summary-input" class="form-control" rows="8" placeholder="분석한 내용을 바탕으로 두 제시문을 비교하는 글을 작성하세요."></textarea>
+                        </div>
+                    </form>
+                </div>
+            </div>
+
+            <div id="analysis-section-causal" class="analysis-section" style="display: none;">
+                <div class="column-header">
+                    <h2>인과 설명 분석하기</h2>
+                </div>
+                <div class="scrollable-content">
+                    <form id="analysis-form-causal">
+                        <div class="form-group">
+                            <label>두 제시문이 공통적으로 설명하고자 하는 현상은?</label>
+                            <textarea id="phenomenon-input" class="form-control" placeholder="설명 대상 현상을 한 문장으로 요약하세요."></textarea>
+                        </div>
+                        <div id="cause-process-container">
+                            <!-- 동적 원인/과정 입력 필드 -->
+                            <div class="form-group cause-process-item">
+                                <label>원인/과정 1</label>
+                                <div class="cause-process-grid">
+                                    <div class="cause-process-box">
+                                        <textarea class="form-control" rows="2" placeholder="(가)의 원인 1을(를) 입력하세요."></textarea>
+                                        <textarea class="form-control" rows="3" placeholder="(가)의 과정 1을(를) 입력하세요."></textarea>
+                                    </div>
+                                    <div class="cause-process-box">
+                                        <textarea class="form-control" rows="2" placeholder="(나)의 원인 1을(를) 입력하세요."></textarea>
+                                        <textarea class="form-control" rows="3" placeholder="(나)의 과정 1을(를) 입력하세요."></textarea>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                         <div class="form-group button-group">
+                            <button type="button" id="add-cause-process-btn" class="action-btn secondary">+ 원인/과정 추가</button>
+                            <button type="button" id="remove-cause-process-btn" class="action-btn secondary">- 원인/과정 삭제</button>
+                        </div>
+                        <div class="form-group">
+                            <label>위의 분석에 기반하여 한 편의 글을 작성해 보세요.</label>
+                            <textarea id="causal-summary-input" class="form-control" rows="8" placeholder="두 제시문의 설명 방식을 비교, 대조하여 분석하는 글을 작성하세요."></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="column-footer">
+                    <button type="button" class="action-btn submit-causal-btn">모범 답안 확인하기</button>
+                </div>
+            </div>
+
+            <!-- This button is now for the argument section only -->
+            <div id="argument-footer" class="column-footer">
+                <button type="button" id="submit-analysis-btn" class="action-btn">모범 답안 확인하기</button>
+            </div>
+        </div>
+    </main>
+
+    <!-- 모범답안 표시용 팝업 모달 -->
+    <div id="model-answer-popup" class="popup-container" style="display: none;">
+        <div class="popup-content">
+            <div class="popup-header">
+                <span>모범 답안 (생성된 제시문의 논리 구조)</span>
+                <button id="model-answer-close-btn" class="popup-close-btn">&times;</button>
+            </div>
+            <div id="model-answer-content" class="popup-main-content">
+                <!-- 모범 답안(논리 구조)이 여기에 동적으로 채워집니다. -->
+            </div>
+        </div>
+    </div>
+
+    <script src="compare-script.js?v=4.5"></script>
+</body>
+</html> 

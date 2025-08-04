@@ -1,0 +1,42 @@
+{
+  "name": "nonsul",
+  "version": "1.0.0",
+  "main": "server.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node integrated-server.js",
+    "start:integrated": "node integrated-server.js",
+    "start:old": "node server.js",
+    "start:all-old": "node start-all-servers.js",
+    "start:argument": "node argument-server.js",
+    "start:causal": "node causal-server.js",
+    "start:image": "node image-server.js",
+    "start:compare": "node compare-server.js",
+    "dev": "nodemon integrated-server.js",
+    "dev:old": "nodemon server.js"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "description": "",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.57.0",
+    "@aws-sdk/client-bedrock-runtime": "^3.830.0",
+    "@google-cloud/aiplatform": "^4.2.0",
+    "@google-cloud/vertexai": "^1.10.0",
+    "@google/generative-ai": "^0.24.1",
+    "axios": "^1.10.0",
+    "body-parser": "^1.20.2",
+    "cors": "^2.8.5",
+    "dotenv": "^16.6.1",
+    "express": "^4.18.2",
+    "file-type": "^21.0.0",
+    "google-gax": "^5.0.1-rc.1",
+    "googleapis": "^150.0.1",
+    "node-fetch": "^2.7.0",
+    "openai": "^5.11.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.10"
+  }
+}

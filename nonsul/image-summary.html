@@ -1,0 +1,498 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>이미지 요약하기 - 논술의 모든 것</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/mermaid@10.9.3/dist/mermaid.min.js"></script>
+    <style>
+        /* 키워드 입력창 스타일 강제 적용 */
+        #keyword-input {
+            height: 40px !important;
+            font-size: 16px !important;
+            pointer-events: auto !important;
+            user-select: text !important;
+            -webkit-user-select: text !important;
+            -moz-user-select: text !important;
+            -ms-user-select: text !important;
+            background-color: white !important;
+            border: 1px solid #ccc !important;
+            border-radius: 4px !important;
+            padding: 8px 12px !important;
+            width: 100% !important;
+            box-sizing: border-box !important;
+            z-index: 10 !important;
+            position: relative !important;
+            outline: none !important;
+            cursor: text !important;
+            -webkit-appearance: none !important;
+            -moz-appearance: none !important;
+            appearance: none !important;
+            tabindex: 0 !important;
+        }
+
+        #keyword-input:focus {
+            border-color: #4CAF50 !important;
+            box-shadow: 0 0 0 2px rgba(76, 175, 80, 0.2) !important;
+        }
+
+        #keyword-input:hover {
+            border-color: #999 !important;
+        }
+
+        #new-problem-btn {
+            padding: 10px 20px !important;
+            font-size: 1rem !important;
+            background-color: #198754 !important; /* Green color */
+            color: white !important;
+            border: none !important;
+            border-radius: 4px !important;
+            cursor: pointer !important;
+        }
+
+        /* --- 이미지 요약하기 페이지 전용 스타일 --- */
+        .image-summary-container {
+            display: flex;
+            align-items: flex-start; /* 컬럼들을 위에서부터 시작하도록 정렬 */
+            gap: 2rem;
+        }
+
+        .image-summary-col:first-child {
+            flex: 1; /* 왼쪽 컬럼 너비 */
+            position: -webkit-sticky; /* Safari 호환성 */
+            position: sticky;
+            top: 2rem; /* 화면 상단에서 2rem 떨어진 위치에 고정 */
+        }
+        
+        .image-summary-col:last-child {
+            flex: 1; /* 오른쪽 컬럼 너비 */
+        }
+
+        .content-box {
+            background-color: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 8px;
+            padding: 20px;
+            min-height: 400px;
+            flex-grow: 1; /* 컬럼 내에서 남는 공간 차지 */
+        }
+        #image-display-area {
+            display: flex;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #image-display-area img {
+            max-width: 100%;
+            max-height: 450px;
+            object-fit: contain;
+            border-radius: 4px;
+        }
+
+        /* Q&A 카드 스타일 */
+        #qa-container {
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+        .qa-card {
+            background-color: #fff;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            padding: 15px;
+        }
+        .question-text {
+            font-weight: bold;
+            margin-bottom: 10px;
+        }
+        .user-answer-input {
+            width: 100%;
+            min-height: 80px;
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            resize: vertical;
+            margin-bottom: 10px;
+            font-size: 1rem;
+        }
+        .model-answer {
+            background-color: #f0f8ff;
+            border: 1px solid #d1e7fd;
+            border-radius: 4px;
+            padding: 15px;
+            margin-top: 10px;
+        }
+
+        /* 분석 결과(오른쪽) 영역 스타일 */
+        #analysis-result-container {
+            display: flex;
+        }
+
+        /* 인과 설명 페이지에서 가져온 스타일 */
+        .form-content-wrapper { flex-grow: 1; overflow-y: auto; padding: 1.5rem; }
+        .form-content-wrapper > h3 { margin-top: 0; margin-bottom: 1rem; }
+        .form-actions-footer { flex-shrink: 0; padding: 1rem 1.5rem; border-top: 1px solid #eee; background-color: #fff; }
+        .form-actions-footer hr { margin: 0.8rem 0; }
+        .right-panel > .card { display: flex; flex-direction: column; flex-grow: 1; overflow: hidden; padding: 0; }
+        .ground-block { border: 1px solid #f0f0f0; background-color: #fafafa; border-radius: 6px; padding: 1rem; margin-bottom: 1rem; }
+        .ground-block-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.5rem; }
+        .ground-block-header label { margin-bottom: 0; font-size: 1.1em; font-weight: 500; }
+        button.remove-ground-btn { padding: 2px 8px; font-size: 0.9em; background-color: #f8d7da; color: #721c24; border: 1px solid #f5c6cb; }
+
+        /* 이미지 불러오기 영역 스타일 개선 */
+        .image-generation-form {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        .image-generation-form .form-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 0;
+        }
+
+        .image-generation-form .form-group input[type="text"] {
+            flex: 0 0 300px;
+            max-width: 300px;
+        }
+
+        .image-generation-form .radio-group {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .image-generation-form .radio-group label {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 0.9em;
+            margin: 0;
+        }
+
+        .image-generation-form .form-group label {
+            font-weight: bold;
+            margin-right: 5px;
+        }
+
+        .image-generation-form .form-group-actions {
+            margin-left: auto;
+        }
+
+        /* 차트 선택 UI 스타일 */
+        .chart-type-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
+            gap: 6px;
+            margin-bottom: 10px;
+        }
+
+        .chart-type-btn {
+            padding: 6px 8px;
+            border: 2px solid #ddd;
+            background-color: #fff;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 0.75em;
+            font-weight: 500;
+            text-align: center;
+            transition: all 0.3s ease;
+            white-space: normal;
+            word-wrap: break-word;
+            min-height: 36px;
+            max-height: 50px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1.2;
+            color: #333 !important;
+            font-family: Arial, sans-serif !important;
+        }
+
+        .chart-type-btn:hover {
+            border-color: #4CAF50;
+            background-color: #f8f9fa;
+            transform: translateY(-1px);
+            color: #333 !important;
+        }
+
+        .chart-type-btn.selected {
+            border-color: #4CAF50;
+            background-color: #4CAF50;
+            color: white !important;
+            font-weight: bold;
+        }
+
+        .chart-type-btn[data-chart-type="auto"] {
+            background-color: #007bff;
+            color: white !important;
+            border-color: #007bff;
+            font-weight: bold;
+        }
+
+        .chart-type-btn[data-chart-type="auto"]:hover {
+            background-color: #0056b3;
+            border-color: #0056b3;
+            color: white !important;
+        }
+
+        .chart-type-btn[data-chart-type="auto"].selected {
+            background-color: #0056b3;
+            border-color: #0056b3;
+            color: white !important;
+        }
+
+        .selected-charts-display {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 10px;
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+            flex-wrap: wrap;
+        }
+
+        #selected-count {
+            font-weight: bold;
+            color: #495057;
+            font-size: 0.9em;
+            margin: 0;
+            white-space: nowrap;
+        }
+
+        #selected-chart-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+            flex: 1;
+        }
+
+        .selected-chart-tag {
+            background-color: #4CAF50;
+            color: white;
+            padding: 3px 6px;
+            border-radius: 3px;
+            font-size: 0.7em;
+            font-weight: 500;
+        }
+
+        .chart-selection-actions {
+            display: flex;
+            gap: 8px;
+            margin-left: auto;
+        }
+
+        .chart-selection-actions button {
+            padding: 6px 12px;
+            border-radius: 4px;
+            font-weight: 500;
+            font-size: 0.85em;
+        }
+
+        /* 안내 문구 스타일 */
+        .instruction-message {
+            background-color: #f8f9fa;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+            padding: 12px 15px;
+            font-size: 0.95em;
+            color: #495057;
+            text-align: center;
+            margin-bottom: 10px;
+            line-height: 1.4;
+        }
+
+        .instruction-message.public-ad {
+            background-color: #e8f5e8;
+            border-color: #4CAF50;
+            color: #2d5a2d;
+        }
+
+        .instruction-message.statistics {
+            background-color: #e7f3ff;
+            border-color: #007bff;
+            color: #004085;
+        }
+
+        .instruction-message.data-set {
+            background-color: #fff3cd;
+            border-color: #ffc107;
+            color: #856404;
+        }
+    </style>
+</head>
+<body>
+    <script>
+        mermaid.initialize({ startOnLoad: false });
+    </script>
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <a href="index.html">분석적 요약하기</a>
+        </div>
+        <div class="navbar-menu">
+            <a href="argument-summary.html" class="mode-btn">논증 요약하기</a>
+            <a href="argument-summary.html?tab=non-argument" class="mode-btn">비논증 요약하기</a>
+            <a href="image-summary.html" class="mode-btn active">이미지 요약하기</a>
+            <a href="#" class="mode-btn" onclick="alert('업데이트 중입니다.'); return false;">비교하기</a>
+        </div>
+        <div class="navbar-right">
+            <a href="index.html" class="mode-btn">메인 페이지</a>
+        </div>
+    </nav>
+    <main>
+        <div class="container left-panel">
+            <h2>이미지 불러오기</h2>
+            <div id="image-generation-card" class="card">
+                <div class="image-generation-form">
+                    <div class="form-group">
+                        <label>유형:</label>
+                        <div class="radio-group">
+                            <label><input type="radio" name="image_type" value="public_ad" checked> 공익 광고</label>
+                            <label><input type="radio" name="image_type" value="statistics"> 통계 차트</label>
+                            <label><input type="radio" name="image_type" value="data_set"> 통계표</label>
+                        </div>
+                    </div>
+                    <div class="form-group">
+                        <div id="instruction-text" class="instruction-message">
+                            <!-- 선택된 유형에 따라 동적으로 변경되는 안내 문구 -->
+                        </div>
+                        <!-- 키워드 필드를 숨김처리 (JavaScript에서 랜덤 키워드 설정용) -->
+                        <input type="hidden" id="keyword-input" value="">
+                    </div>
+                    <div class="form-group-actions">
+                        <button id="generate-image-btn" class="primary">이미지 불러오기</button>
+                    </div>
+                </div>
+            </div>
+            <!-- 차트 종류 선택 UI -->
+            <div id="chart-type-selection-card" class="card" style="display: none;">
+                <h3 style="margin-bottom: 10px; font-size: 1.1em;">차트 종류를 선택하세요. (2개까지 선택 가능)</h3>
+                <div id="chart-type-buttons" class="chart-type-grid">
+                    <button class="chart-type-btn" data-chart-type="radar">레이더 차트</button>
+                    <button class="chart-type-btn" data-chart-type="bubble">버블 차트</button>
+                    <button class="chart-type-btn" data-chart-type="bar">막대 차트</button>
+                    <button class="chart-type-btn" data-chart-type="line">선 차트</button>
+                    <button class="chart-type-btn" data-chart-type="pie">파이 차트</button>
+                    <button class="chart-type-btn" data-chart-type="area">영역 차트</button>
+                    <button class="chart-type-btn" data-chart-type="trend">추세 분석 차트</button>
+                    <button class="chart-type-btn" data-chart-type="multiLine">다중선 차트</button>
+                    <button class="chart-type-btn" data-chart-type="correlation">상관관계 차트</button>
+                    <button class="chart-type-btn" data-chart-type="multiVar">다변수 분석 차트</button>
+                    <button class="chart-type-btn" data-chart-type="comparison">비교 분석 차트</button>
+                    <button class="chart-type-btn" data-chart-type="regional">지역별 비교 차트</button>
+                    <button class="chart-type-btn" data-chart-type="sectoral">부문별 분석 차트</button>
+                    <button class="chart-type-btn" data-chart-type="stacked">누적 막대 차트</button>
+                    <button class="chart-type-btn" data-chart-type="scatter">산점도 차트</button>
+                    <button class="chart-type-btn" data-chart-type="polarArea">극축 영역 차트</button>
+                    <button class="chart-type-btn" data-chart-type="doughnut">도넛 차트</button>
+                    <button class="chart-type-btn" data-chart-type="candlestick">캔들스틱 차트</button>
+                    <button class="chart-type-btn" data-chart-type="waterfall">폭포 차트</button>
+                    <button class="chart-type-btn" data-chart-type="funnel">깔때기 차트</button>
+                    <button class="chart-type-btn" data-chart-type="mixed">혼합형 차트</button>
+                    <button class="chart-type-btn" data-chart-type="economic">경제 분석 차트</button>
+                    <button class="chart-type-btn" data-chart-type="auto">🤖 AI 자동 선택</button>
+                </div>
+                <div id="selected-charts-info" class="selected-charts-display">
+                    <span id="selected-count">선택된 차트: 0개</span>
+                    <div id="selected-chart-list"></div>
+                    <div class="chart-selection-actions">
+                        <button id="clear-selection-btn" class="secondary">선택 초기화</button>
+                        <button id="generate-selected-charts-btn" class="primary" disabled>선택한 차트로 생성</button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="image-display-container" class="card" style="display: none;">
+                <div id="image-display" class="passage-box"></div>
+            </div>
+        </div>
+
+        <div class="container right-panel">
+            <!-- 공익 광고 분석 패널 -->
+            <div id="image-analysis-panel" style="display: block;">
+                <h2>이미지 분석하기</h2>
+                <div id="summary-form" class="card">
+                    <div class="form-content-wrapper">
+                        <h3>논증 구조 분석</h3>
+                        <div class="form-group-vertical">
+                            <label for="user-issue">쟁점</label>
+                            <textarea id="user-issue" class="summary-textarea" placeholder="이미지가 다루는 핵심 쟁점을 작성하세요."></textarea>
+                        </div>
+                        <div class="form-group-vertical">
+                            <label for="user-claim">주장</label>
+                            <textarea id="user-claim" class="summary-textarea" placeholder="이미지의 핵심 주장을 '~해야 한다' 또는 '~해서는 안된다' 형태로 작성하세요."></textarea>
+                        </div>
+                        <div id="grounds-container">
+                            <!-- 근거 블록이 여기에 동적으로 추가됩니다. -->
+                        </div>
+                    </div>
+                    <div class="form-actions-footer">
+                        <div class="form-group-actions">
+                            <button type="button" id="add-ground-btn" class="secondary">+ 근거 추가</button>
+                        </div>
+                        <hr>
+                        <div class="form-group-actions">
+                            <button id="show-model-answer-btn" class="primary" disabled>📋 모범답안 확인</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 통계 자료 분석 패널 -->
+            <div id="data-analysis-panel" style="display: none;">
+                <h2>데이터 분석하기</h2>
+                <div id="data-analysis-form" class="card">
+                    <div class="form-content-wrapper">
+                        <h3 id="data-analysis-title">📊 통계 자료 분석</h3>
+                        <div class="data-analysis-scroll" id="data-questions-container">
+                            <!-- 질문들이 여기에 동적으로 추가됩니다 -->
+                        </div>
+                    </div>
+                    <div class="form-actions-footer">
+                        <div class="form-group-actions">
+                            <button id="show-data-model-answer-btn" class="primary" disabled>📋 모범답안 확인</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <!-- AI 분석 결과 표시용 팝업 -->
+    <div id="analysis-popup-backdrop" class="popup-backdrop"></div>
+    <!-- 이미지/차트 팝업 창 -->
+    <div id="image-popup" class="image-popup-window">
+        <div class="popup-header" id="image-popup-header">
+            <h3 id="image-popup-title">시각화 자료</h3>
+            <div class="popup-controls">
+                <button class="popup-minimize" id="image-popup-minimize">−</button>
+                <button class="popup-close" id="image-popup-close">×</button>
+            </div>
+        </div>
+        <div class="popup-content" id="image-popup-content">
+            <!-- 차트나 이미지가 여기에 표시됩니다 -->
+        </div>
+        <div class="popup-resize-handle" id="image-resize-handle"></div>
+    </div>
+
+    <div id="analysis-popup" class="popup-window">
+        <div class="popup-header">
+            <h3>AI 논증 분석 결과</h3>
+            <button id="popup-close-btn" class="popup-close">&times;</button>
+        </div>
+        <div id="popup-content" class="popup-body"></div>
+    </div>
+
+    <script src="image-summary-script.js?v=13.0"></script>
+</body>
+</html>
