@@ -20,7 +20,7 @@ dotenv.config();
 
 // 3. Express 앱 초기화
 const app = express();
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 3001;
 
 // 4. API 클라이언트 초기화
 // OpenAI
@@ -156,17 +156,42 @@ ${definitionsText}
 // 논증 요약 (Argument) 관련 기능
 // ============================
 
-// 논증 구조 생성 함수
+// 논증 구조 생성 함수 - 새로운 난이도 구조 적용
 async function generateArgumentStructure(keyword, difficulty) {
     if (!openai) throw new Error('OpenAI API가 설정되지 않았습니다.');
     
     console.log('[논증 로직] 논증 구조 생성 시작');
     
-    const structurePrompt = difficulty === 'easy' ? 
-        `"${keyword}"에 대한 논증을 만들되, 주장 1개와 근거 2개만 포함하세요.` :
-        difficulty === 'normal' ? 
-        `"${keyword}"에 대한 논증을 만들되, 주장 1개와 근거 2개, 그리고 하위근거들을 포함하세요.` :
-        `"${keyword}"에 대한 완전한 논증을 만들되, 주장, 근거들, 하위근거들, 숨은전제를 모두 포함하세요.`;
+    let structurePrompt;
+    
+    if (difficulty === 'easy') {
+        // 쉬움: 주장+근거1+근거2, 또는 주장+근거1+근거1의 근거
+        structurePrompt = `"${keyword}"에 대한 논증을 만드세요.
+
+구조 요구사항:
+- 주장 1개
+- 근거 2개 (또는 근거1 + 근거1의 하위근거)
+- 간단하고 명확한 구조`;
+    } else if (difficulty === 'normal') {
+        // 보통: 주장+근거1+근거1의 근거+근거2, 또는 주장+근거1+근거2+근거2의 근거
+        structurePrompt = `"${keyword}"에 대한 논증을 만드세요.
+
+구조 요구사항:
+- 주장 1개
+- 근거 2개
+- 각 근거마다 하위근거 1-2개씩
+- 체계적인 논증 구조`;
+    } else {
+        // 어려움: 주장+근거1+근거1의 근거+근거2+근거2의 근거+근거3+근거3의 근거
+        structurePrompt = `"${keyword}"에 대한 완전한 논증을 만드세요.
+
+구조 요구사항:
+- 주장 1개
+- 근거 3개
+- 각 근거마다 하위근거 2-3개씩
+- 숨은전제 포함
+- 복잡하고 정교한 논증 구조`;
+    }
 
     const structureResponse = await openai.chat.completions.create({
         model: "gpt-4o",
@@ -175,12 +200,11 @@ async function generateArgumentStructure(keyword, difficulty) {
 결과는 다음 JSON 형식으로만 답변해주세요:
 {
   "claim": "주장 내용",
-  "grounds": ["근거1", "근거2"],
+  "grounds": ["근거1", "근거2"${difficulty === 'hard' ? ', "근거3"' : ''}],
   "subgrounds": {
-    "근거1": ["하위근거1-1", "하위근거1-2"],
-    "근거2": ["하위근거2-1", "하위근거2-2"]
-  },
-  "warrant": "숨은전제 (hard 난이도에만 포함)"
+    "근거1": ["하위근거1-1"${difficulty !== 'easy' ? ', "하위근거1-2"' : ''}],
+    "근거2": ["하위근거2-1"${difficulty !== 'easy' ? ', "하위근거2-2"' : ''}]${difficulty === 'hard' ? ',\n    "근거3": ["하위근거3-1", "하위근거3-2"]' : ''}
+  }${difficulty === 'hard' ? ',\n  "warrant": "숨은전제 내용"' : ''}
 }` }],
         max_tokens: 1000
     });
@@ -426,40 +450,45 @@ app.post('/api/generate-passage', async (req, res) => {
             
             let passagePrompt;
             if (difficulty === 'easy') {
+                // 쉬움: 200~300자, 한 단락
                 passagePrompt = `다음 논증 구조를 바탕으로 ${keyword}에 대한 간단한 논증문을 작성하세요:
 주장: ${structure.claim}
 근거: ${structure.grounds.join(', ')}
+${structure.subgrounds ? `하위근거: ${Object.entries(structure.subgrounds).map(([key, values]) => `${key} → ${values.join(', ')}`).join(' / ')}` : ''}
 
 **중요: 반드시 다음 형식을 따르세요**
-- 정확히 2단락으로 구성
-- 1단락: 주장 제시 (2-3문장)
-- 2단락: 근거 설명 (3-4문장)
-- **각 단락 사이에는 반드시 빈 줄 삽입**`;
+- 정확히 한 단락으로 구성
+- 200~300자 정도의 글
+- 주장을 먼저 제시하고 근거들로 뒷받침
+- 자연스럽고 간결한 문체`;
             } else if (difficulty === 'normal') {
+                // 보통: 400~500자, 한 단락
                 passagePrompt = `다음 논증 구조를 바탕으로 ${keyword}에 대한 체계적인 논증문을 작성하세요:
 주장: ${structure.claim}
 근거: ${structure.grounds.join(', ')}
 하위근거: ${Object.entries(structure.subgrounds).map(([key, values]) => `${key} → ${values.join(', ')}`).join(' / ')}
 
 **중요: 반드시 다음 형식을 따르세요**
-- 정확히 3단락으로 구성
-- 1단락: 도입 및 주장 (3-4문장)
-- 2단락: 첫 번째 근거 설명 (4-5문장)  
-- 3단락: 두 번째 근거 설명 (4-5문장)
-- **각 단락 사이에는 반드시 빈 줄 삽입**`;
+- 정확히 한 단락으로 구성
+- 400~500자 정도의 글
+- 주장과 근거들, 하위근거들을 체계적으로 연결
+- 논리적 흐름이 명확한 문체`;
             } else {
-                passagePrompt = `다음 논증 구조를 바탕으로 ${keyword}에 대한 완전한 에세이를 작성하세요:
+                // 어려움: 1500자 이내, 3~4단락
+                passagePrompt = `다음 논증 구조를 바탕으로 ${keyword}에 대한 완전한 논증문을 작성하세요:
 주장: ${structure.claim}
 근거: ${structure.grounds.join(', ')}
 하위근거: ${Object.entries(structure.subgrounds).map(([key, values]) => `${key} → ${values.join(', ')}`).join(' / ')}
-숨은전제: ${structure.warrant}
+${structure.warrant ? `숨은전제: ${structure.warrant}` : ''}
 
-**중요: 반드시 다음 5단락 에세이 형식을 따르세요**
-- 1단락: 서론 - 문제 제기 및 주장 (4-5문장)
-- 2단락: 첫 번째 근거 상세 설명 (5-6문장)
-- 3단락: 두 번째 근거 상세 설명 (5-6문장)  
-- 4단락: 반박 검토 및 재반박 (4-5문장)
-- 5단락: 결론 - 주장 재확인 (3-4문장)
+**중요: 반드시 다음 형식을 따르세요**
+- 정확히 3~4개 단락으로 구성
+- 1500자 이내의 긴 글
+- 각 단락의 중심문장은 전체 글의 주장에 대한 근거
+- 1단락: 주장과 첫 번째 근거 제시
+- 2단락: 두 번째 근거와 하위근거들 설명
+- 3단락: 세 번째 근거와 하위근거들 설명
+- 4단락(선택): 결론 및 주장 재확인
 - **각 단락 사이에는 반드시 빈 줄 삽입**`;
             }
 
@@ -476,10 +505,8 @@ app.post('/api/generate-passage', async (req, res) => {
                 passage: passage.trim(),
                 logical_structure: {
                     claim: structure.claim,
-                    arguments: structure.grounds.map(ground => ({
-                        ground: ground,
-                        subgrounds: structure.subgrounds[ground] || []
-                    })),
+                    grounds: structure.grounds,
+                    subgrounds: structure.subgrounds,
                     warrant: structure.warrant || null
                 }
             };
@@ -925,14 +952,14 @@ app.post('/api/generate-non-argument-passage', async (req, res) => {
         const { keyword, summaryType, difficulty } = req.body;
         console.log(`[API_CALL] /api/generate-non-argument-passage - keyword: ${keyword}, type: ${summaryType}, difficulty: ${difficulty}`);
 
-        // 난이도별 분량 설정
+        // 새로운 난이도별 분량 설정
         let lengthRequirement = '';
         if (difficulty === 'easy') {
-            lengthRequirement = '3~5개의 문장으로 구성된 글';
+            lengthRequirement = '200~300자 정도의 한 단락으로 구성된 글';
         } else if (difficulty === 'normal') {
-            lengthRequirement = '약 500~700자 정도의 분량으로 구성된 글';
+            lengthRequirement = '400~600자 정도의 한 단락으로 구성된 글';
         } else if (difficulty === 'hard') {
-            lengthRequirement = '약 3~4개의 단락으로 이루어진 1500자 정도의 글';
+            lengthRequirement = '1500자 이내, 3~4단락으로 구성된 긴 글';
         }
 
         // 요약 유형별 프롬프트 설정
@@ -1175,6 +1202,72 @@ app.use((err, req, res, next) => {
     });
 });
 
+// 6.7 예시답안 생성 API
+app.post('/api/generate-example-summary', async (req, res) => {
+    try {
+        console.log(`[API_CALL] /api/generate-example-summary`);
+        
+        const { claim, grounds, subgrounds, warrant } = req.body;
+        
+        if (!openai) {
+            // API 키가 없는 경우 기본 예시답안 반환
+            return res.json({
+                exampleSummary: `${claim} 이는 여러 근거들을 통해 뒷받침된다. ${grounds ? grounds.join(', ') : ''}라는 점들이 이를 증명한다. 따라서 위와 같은 이유로 해당 주장이 타당하다고 볼 수 있다.`
+            });
+        }
+        
+        // 논리구조를 바탕으로 자연스러운 요약문 생성
+        let structureText = `주장: ${claim}\n`;
+        
+        if (grounds && grounds.length > 0) {
+            structureText += `근거들:\n`;
+            grounds.forEach((ground, index) => {
+                structureText += `${index + 1}. ${ground}\n`;
+                if (subgrounds && subgrounds[ground]) {
+                    subgrounds[ground].forEach((subGround, subIndex) => {
+                        structureText += `  ${index + 1}.${subIndex + 1} ${subGround}\n`;
+                    });
+                }
+            });
+        }
+        
+        if (warrant) {
+            structureText += `숨은전제: ${warrant}\n`;
+        }
+        
+        const prompt = `다음 논증의 논리구조를 바탕으로 자연스럽고 완성도 높은 한 단락 요약문을 작성해주세요:
+
+${structureText}
+
+요구사항:
+- 주장을 중심으로 근거들을 자연스럽게 연결
+- 논리적 흐름이 명확한 한 단락 구성
+- 학술적이면서도 읽기 쉬운 문체
+- 150-250자 정도의 적절한 길이
+- 단순 나열이 아닌 유기적 연결
+
+요약문만 출력해주세요:`;
+
+        const response = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [{ role: "user", content: prompt }],
+            max_tokens: 400,
+            temperature: 0.7
+        });
+
+        const exampleSummary = response.choices[0].message.content.trim();
+        
+        res.json({ exampleSummary });
+        
+    } catch (error) {
+        console.error(`[ERROR] /api/generate-example-summary: ${error.message}`);
+        res.status(500).json({ 
+            error: '예시답안 생성 중 오류가 발생했습니다.',
+            exampleSummary: '예시답안을 생성할 수 없습니다. 주장과 근거를 자연스럽게 연결하여 한 단락으로 작성해보세요.'
+        });
+    }
+});
+
 // 9. 서버 시작
 app.listen(PORT, () => {
     console.log(`
@@ -1202,6 +1295,7 @@ app.listen(PORT, () => {
 - GET /api/proxy-image (이미지 프록시)
 - POST /api/analyze-image-argument (이미지 논증 분석)
 - POST /api/generate-game-passage (게임용 제시문 생성)
+- POST /api/generate-example-summary (예시답안 생성)
 
 ⚙️ 설정된 API:
 - OpenAI: ${openai ? '✅' : '❌'}

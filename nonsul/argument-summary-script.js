@@ -212,8 +212,37 @@ document.addEventListener('DOMContentLoaded', () => {
         return html;
     };
 
+    // 주장을 의문문으로 변환하는 함수
+    const convertToQuestion = (claim) => {
+        if (!claim) return '';
+        
+        // 이미 의문문인 경우 그대로 반환
+        if (claim.endsWith('?') || claim.endsWith('？')) {
+            return claim;
+        }
+        
+        // 평서문을 의문문으로 변환
+        let question = claim;
+        
+        // 서술어가 '이다', '다'로 끝나는 경우
+        if (question.endsWith('이다.') || question.endsWith('이다')) {
+            question = question.replace(/이다\.?$/, '인가?');
+        } else if (question.endsWith('다.') || question.endsWith('다')) {
+            question = question.replace(/다\.?$/, '는가?');
+        } else if (question.endsWith('.')) {
+            question = question.replace(/\.$/, '인가?');
+        } else {
+            question += '인가?';
+        }
+        
+        return question;
+    };
+
     const showEvaluationPopup = (userSummary, model, evaluation) => {
         popupContent.innerHTML = ''; // 기존 내용 초기화
+        
+        // 전역 변수에 모델 데이터 저장 (예시답안 생성용)
+        window.currentModel = model;
 
         // 나의 답안 섹션
         const userSection = document.createElement('div');
@@ -225,39 +254,67 @@ document.addEventListener('DOMContentLoaded', () => {
             <div><strong>근거:</strong><ul>${userSummary.grounds.length > 0 ? userSummary.grounds.map(g => `<li>${g}</li>`).join('') : '<li><em>미작성</em></li>'}</ul></div>
         `;
         
-        // 모범 답안 섹션
+        // 모범 답안 섹션 - 새로운 형식으로 출력
         const modelSection = document.createElement('div');
         modelSection.className = 'popup-section';
         
         let modelAnswerHtml = '<h3>모범 답안</h3>';
         
-        if (evaluation?.model_answer) {
-            const modelAnswer = evaluation.model_answer;
+        // 새로운 형식으로 논리구조 출력
+        console.log('[DEBUG] 모범답안 model 객체:', model);
+        console.log('[DEBUG] model.grounds:', model?.grounds);
+        console.log('[DEBUG] model.subgrounds:', model?.subgrounds);
+        
+
+        
+        if (model) {
+            modelAnswerHtml += `<div style="background-color: #f8f9fa; padding: 15px; border-radius: 8px; border-left: 4px solid #007bff;">`;
             
-            modelAnswerHtml += `<p><strong>주장:</strong> ${modelAnswer.claim}</p>`;
-            
-            // 쉬움 난이도: grounds 필드 사용
-            if (modelAnswer.grounds) {
-                modelAnswerHtml += '<div><strong>근거:</strong><pre style="white-space: pre-wrap; font-family: inherit; margin: 10px 0;">' + modelAnswer.grounds + '</pre></div>';
+            // 1. 쟁점 (주장을 의문문으로 변환)
+            if (model.claim) {
+                const issue = convertToQuestion(model.claim);
+                modelAnswerHtml += `<p><strong>🤔 쟁점:</strong> ${issue}</p>`;
             }
             
-            // 보통/어려움 난이도: detailed_structure 필드 사용
-            if (modelAnswer.detailed_structure) {
-                modelAnswerHtml += '<div><strong>논증 구조:</strong><pre style="white-space: pre-wrap; font-family: inherit; margin: 10px 0;">' + modelAnswer.detailed_structure + '</pre></div>';
+            // 2. 주장
+            if (model.claim) {
+                modelAnswerHtml += `<p><strong>🎯 주장:</strong> ${model.claim}</p>`;
             }
             
-            // 어려움 난이도: 숨은전제 표시
-            if (modelAnswer.hidden_premise && modelAnswer.hidden_premise !== "명시적 숨은전제 없음") {
-                modelAnswerHtml += `<p><strong>숨은전제:</strong> ${modelAnswer.hidden_premise}</p>`;
+            // 3. 근거들
+            console.log('[DEBUG] 근거 체크 - model.grounds 존재:', !!model.grounds, '길이:', model.grounds?.length);
+            if (model.grounds && model.grounds.length > 0) {
+                console.log('[DEBUG] 근거 출력 시작');
+                modelAnswerHtml += `<div><strong>📋 근거:</strong><ul>`;
+                model.grounds.forEach((ground, index) => {
+                    console.log(`[DEBUG] 근거 ${index + 1}:`, ground);
+                    modelAnswerHtml += `<li><strong>${index + 1}.</strong> ${ground}</li>`;
+                    
+                    // 3.1, 3.2... 근거의 근거 (하위근거)
+                    console.log(`[DEBUG] 하위근거 체크 [${ground}]:`, model.subgrounds?.[ground]);
+                    if (model.subgrounds && model.subgrounds[ground] && model.subgrounds[ground].length > 0) {
+                        console.log(`[DEBUG] 하위근거 출력 [${ground}]:`, model.subgrounds[ground]);
+                        modelAnswerHtml += `<ul style="margin-left: 20px; margin-top: 5px;">`;
+                        model.subgrounds[ground].forEach((subGround, subIndex) => {
+                            modelAnswerHtml += `<li style="color: #666;"><strong>${index + 1}.${subIndex + 1}</strong> ${subGround}</li>`;
+                        });
+                        modelAnswerHtml += `</ul>`;
+                    }
+                });
+                modelAnswerHtml += `</ul></div>`;
+            } else {
+                console.log('[DEBUG] 근거가 없거나 비어있음');
+                modelAnswerHtml += `<p style="color: #999;">근거 데이터가 없습니다.</p>`;
             }
             
-            // 구조 설명 추가
-            if (modelAnswer.structure_note) {
-                modelAnswerHtml += `<p style="color: #6c757d; font-style: italic; margin-top: 15px;"><strong>💡 분석 안내:</strong> ${modelAnswer.structure_note}</p>`;
+            // 숨은전제 (어려움 난이도)
+            if (model.warrant && model.warrant.trim() !== '') {
+                modelAnswerHtml += `<p><strong>🔗 숨은전제:</strong> ${model.warrant}</p>`;
             }
+            
+            modelAnswerHtml += `</div>`;
         } else {
-            // 기존 형식 지원 (백업)
-            modelAnswerHtml += formatLogicalStructureToHtml(model);
+            modelAnswerHtml += '<p style="color: #999;">논리구조 데이터를 불러올 수 없습니다.</p>';
         }
         
         modelSection.innerHTML = modelAnswerHtml;
@@ -276,10 +333,101 @@ document.addEventListener('DOMContentLoaded', () => {
         popupContent.appendChild(userSection);
         popupContent.appendChild(modelSection);
         
+        // 요약문 작성 섹션 (논증 타입일 때만)
+        if (model && model.claim) {
+            const summaryWritingSection = createSummaryWritingSection(model);
+            popupContent.appendChild(summaryWritingSection);
+        }
+        
         popupBackdrop.classList.remove('hidden');
         popupContainer.classList.remove('hidden');
+        };
+
+    // 요약문 작성 섹션 생성 함수
+    const createSummaryWritingSection = (model) => {
+        const section = document.createElement('div');
+        section.className = 'popup-section';
+        section.style.borderTop = '2px solid #e9ecef';
+        section.style.marginTop = '20px';
+        section.style.paddingTop = '20px';
+        
+        section.innerHTML = `
+            <h3>📝 한 단락 쓰기</h3>
+            <p style="color: #666; margin-bottom: 15px;">위의 주장과 근거들을 활용하여 한 단락으로 요약해보세요.</p>
+            <textarea 
+                id="summary-writing-textarea" 
+                placeholder="주장과 근거를 자연스럽게 연결하여 한 단락으로 작성해주세요..."
+                style="width: 100%; height: 120px; padding: 12px; border: 1px solid #ddd; border-radius: 6px; font-size: 14px; line-height: 1.5; resize: vertical; font-family: inherit;"
+            ></textarea>
+            <div style="margin-top: 15px; text-align: right;">
+                <button 
+                    id="show-example-btn" 
+                    style="background-color: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 6px; cursor: pointer; font-size: 14px;"
+                    onclick="this.disabled=true; this.textContent='생성 중...'; showExampleSummary()"
+                >
+                    예시답안 보기
+                </button>
+            </div>
+            <div id="example-summary-container" style="margin-top: 15px; display: none;">
+                <h4 style="color: #495057; margin-bottom: 10px;">💡 예시답안</h4>
+                <div id="example-summary-content" style="background-color: #f8f9fa; padding: 15px; border-radius: 6px; border-left: 4px solid #28a745; line-height: 1.6;">
+                </div>
+            </div>
+        `;
+        
+        return section;
     };
-    
+
+    // 예시답안 생성 함수
+    window.showExampleSummary = async () => {
+        const button = document.getElementById('show-example-btn');
+        const container = document.getElementById('example-summary-container');
+        const content = document.getElementById('example-summary-content');
+        
+        try {
+            // 현재 모범답안 데이터 가져오기
+            const model = window.currentModel; // 전역 변수로 모델 데이터 저장 필요
+            
+            if (!model || !model.claim) {
+                content.innerHTML = '<p style="color: #dc3545;">예시답안을 생성할 수 없습니다.</p>';
+                container.style.display = 'block';
+                button.disabled = false;
+                button.textContent = '예시답안 보기';
+                return;
+            }
+            
+            // 서버에 예시답안 요청
+            const response = await fetch('/api/generate-example-summary', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    claim: model.claim,
+                    grounds: model.grounds,
+                    subgrounds: model.subgrounds,
+                    warrant: model.warrant
+                })
+            });
+            
+            if (!response.ok) {
+                throw new Error('서버 오류');
+            }
+            
+            const data = await response.json();
+            content.innerHTML = `<p>${data.exampleSummary}</p>`;
+            container.style.display = 'block';
+            
+        } catch (error) {
+            console.error('예시답안 생성 오류:', error);
+            content.innerHTML = '<p style="color: #dc3545;">예시답안 생성 중 오류가 발생했습니다.</p>';
+            container.style.display = 'block';
+        } finally {
+            button.disabled = false;
+            button.textContent = '예시답안 보기';
+        }
+    };
+
     const createResultItem = (title, evalData) => {
         if (typeof evalData === 'undefined' || evalData === null) {
             return `<p><strong>${title}:</strong> 채점 정보 없음</p>`;
@@ -899,7 +1047,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div style="padding: 15px; background-color: #fff3cd; border-radius: 6px;">
                         <h5 style="margin: 0 0 10px 0; color: #856404;">💡 요약 포인트</h5>
                         <div style="color: #333; font-size: 0.95em;">
-                            ${getSummaryTip(data.summaryType)}
+                            ${getComprehensiveSummaryGuide(data.summaryType)}
                         </div>
                     </div>
                 </div>
@@ -952,7 +1100,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div style="padding: 15px; background-color: #fff3cd; border-radius: 6px;">
                         <h5 style="margin: 0 0 10px 0; color: #856404;">💡 요약 포인트</h5>
                         <div style="color: #333; font-size: 0.95em;">
-                            ${getSummaryTip(data.summaryType)}
+                            ${getComprehensiveSummaryGuide(data.summaryType)}
                         </div>
                     </div>
                 </div>
@@ -1005,7 +1153,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div style="padding: 15px; background-color: #fff3cd; border-radius: 6px;">
                         <h5 style="margin: 0 0 10px 0; color: #856404;">💡 요약 포인트</h5>
                         <div style="color: #333; font-size: 0.95em;">
-                            ${getSummaryTip(data.summaryType)}
+                            ${getComprehensiveSummaryGuide(data.summaryType)}
                         </div>
                     </div>
                 </div>
@@ -1038,7 +1186,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     <div style="padding: 15px; background-color: #fff3cd; border-radius: 6px;">
                         <h5 style="margin: 0 0 10px 0; color: #856404;">💡 요약 포인트</h5>
                         <div style="color: #333; font-size: 0.95em;">
-                            ${getSummaryTip(data.summaryType)}
+                            ${getComprehensiveSummaryGuide(data.summaryType)}
                         </div>
                     </div>
                 </div>
@@ -1207,6 +1355,96 @@ document.addEventListener('DOMContentLoaded', () => {
             'reconstruct': '복잡한 내용을 이해하기 쉽게 재구성하고 어려운 표현을 쉬운 말로 바꾸는 것이 포인트입니다.'
         };
         return tips[summaryType] || '효과적인 요약을 위해 핵심 내용을 파악하는 것이 중요합니다.';
+    }
+
+    // 요약 방법별 종합 가이드 생성 함수
+    function getComprehensiveSummaryGuide(summaryType) {
+        if (summaryType === 'delete') {
+            return `
+                <div style="margin-bottom: 15px;">
+                    <div style="background-color: #ffebee; padding: 12px; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #c62828;">
+                        <strong style="color: #c62828;">🗑️ 삭제 요약의 핵심 원칙</strong><br>
+                        <span style="font-size: 0.9em;">핵심 내용은 보존하고 부차적인 내용을 제거</span>
+                    </div>
+                    <div style="background-color: #f3e5f5; padding: 10px; border-radius: 5px; margin-bottom: 6px;">
+                        <strong>방법 1 - 중복 표현 제거:</strong> 같은 의미를 반복하는 문장들을 하나로 통합
+                    </div>
+                    <div style="background-color: #e8f5e8; padding: 10px; border-radius: 5px; margin-bottom: 6px;">
+                        <strong>방법 2 - 부연설명 제거:</strong> 예시나 상세한 설명 부분을 삭제
+                    </div>
+                    <div style="background-color: #fff3e0; padding: 10px; border-radius: 5px; margin-bottom: 6px;">
+                        <strong>방법 3 - 수식어 간소화:</strong> 과도한 형용사나 부사를 제거
+                    </div>
+                    <div style="background-color: #e1f5fe; padding: 10px; border-radius: 5px;">
+                        <strong>방법 4 - 구조 간소화:</strong> 복잡한 문장 구조를 단순하게 변경
+                    </div>
+                </div>
+            `;
+        } else if (summaryType === 'select') {
+            return `
+                <div style="margin-bottom: 15px;">
+                    <div style="background-color: #e3f2fd; padding: 12px; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #1976d2;">
+                        <strong style="color: #1976d2;">🎯 선택 요약의 핵심 원칙</strong><br>
+                        <span style="font-size: 0.9em;">원문의 핵심 문장들을 선별하여 조합</span>
+                    </div>
+                    <div style="background-color: #f3e5f5; padding: 10px; border-radius: 5px; margin-bottom: 6px;">
+                        <strong>방법 1 - 주제문 우선:</strong> 각 단락의 주제문을 중심으로 선택
+                    </div>
+                    <div style="background-color: #e8f5e8; padding: 10px; border-radius: 5px; margin-bottom: 6px;">
+                        <strong>방법 2 - 논리적 순서:</strong> 인과관계나 시간순서를 나타내는 문장 우선
+                    </div>
+                    <div style="background-color: #fff3e0; padding: 10px; border-radius: 5px; margin-bottom: 6px;">
+                        <strong>방법 3 - 정보 밀도:</strong> 가장 많은 정보를 담은 문장들을 선택
+                    </div>
+                    <div style="background-color: #ffebee; padding: 10px; border-radius: 5px;">
+                        <strong>방법 4 - 연결성 확보:</strong> 선택된 문장들이 자연스럽게 연결되도록 배치
+                    </div>
+                </div>
+            `;
+        } else if (summaryType === 'generalize') {
+            return `
+                <div style="margin-bottom: 15px;">
+                    <div style="background-color: #e8f5e8; padding: 12px; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #388e3c;">
+                        <strong style="color: #388e3c;">🔄 일반화 요약의 핵심 원칙</strong><br>
+                        <span style="font-size: 0.9em;">구체적 내용을 추상적이고 포괄적으로 표현</span>
+                    </div>
+                    <div style="background-color: #f3e5f5; padding: 10px; border-radius: 5px; margin-bottom: 6px;">
+                        <strong>방법 1 - 상위개념화:</strong> 구체적 사례를 상위 개념으로 대체
+                    </div>
+                    <div style="background-color: #e3f2fd; padding: 10px; border-radius: 5px; margin-bottom: 6px;">
+                        <strong>방법 2 - 통계적 표현:</strong> 구체적 수치를 경향성으로 표현
+                    </div>
+                    <div style="background-color: #fff3e0; padding: 10px; border-radius: 5px; margin-bottom: 6px;">
+                        <strong>방법 3 - 원리 추출:</strong> 사례에서 일반적 원리나 법칙을 도출
+                    </div>
+                    <div style="background-color: #ffebee; padding: 10px; border-radius: 5px;">
+                        <strong>방법 4 - 포괄적 표현:</strong> 여러 개별 사항을 하나의 포괄적 개념으로 통합
+                    </div>
+                </div>
+            `;
+        } else if (summaryType === 'reconstruct') {
+            return `
+                <div style="margin-bottom: 15px;">
+                    <div style="background-color: #f3e5f5; padding: 12px; border-radius: 6px; margin-bottom: 8px; border-left: 4px solid #7b1fa2;">
+                        <strong style="color: #7b1fa2;">🔧 재구성 요약의 핵심 원칙</strong><br>
+                        <span style="font-size: 0.9em;">원문의 내용을 새로운 구조와 표현으로 재조직</span>
+                    </div>
+                    <div style="background-color: #e8f5e8; padding: 10px; border-radius: 5px; margin-bottom: 6px;">
+                        <strong>방법 1 - 구조 재편:</strong> 시간순→주제별, 주제별→중요도순 등으로 재배열
+                    </div>
+                    <div style="background-color: #e3f2fd; padding: 10px; border-radius: 5px; margin-bottom: 6px;">
+                        <strong>방법 2 - 관점 변경:</strong> 서술자나 시각을 바꿔서 재구성
+                    </div>
+                    <div style="background-color: #fff3e0; padding: 10px; border-radius: 5px; margin-bottom: 6px;">
+                        <strong>방법 3 - 표현 전환:</strong> 원문의 의미를 완전히 다른 문체로 표현
+                    </div>
+                    <div style="background-color: #ffebee; padding: 10px; border-radius: 5px;">
+                        <strong>방법 4 - 내용 재조합:</strong> 원문의 요소들을 새로운 논리적 순서로 조합
+                    </div>
+                </div>
+            `;
+        }
+        return '';
     }
     
     /**
