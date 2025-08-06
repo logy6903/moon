@@ -146,6 +146,133 @@
             border-radius: 4px !important;
             cursor: pointer !important;
         }
+
+        /* 게임하기 섹션 스타일 */
+        .game-section {
+            margin-top: 50px !important;
+            padding: 30px !important;
+            background-color: #f8f9fa !important;
+            border-radius: 8px !important;
+            border: 1px solid #ddd !important;
+        }
+
+        .game-controls {
+            display: flex !important;
+            align-items: center !important;
+            gap: 20px !important;
+            margin-bottom: 20px !important;
+        }
+
+        .timer-display {
+            font-size: 1.2rem !important;
+            font-weight: bold !important;
+            color: #333 !important;
+        }
+
+        .game-table-container {
+            overflow-x: auto !important;
+            margin-bottom: 20px !important;
+        }
+
+        .game-table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            background-color: white !important;
+            border: 1px solid #ddd !important;
+            border-radius: 4px !important;
+        }
+
+        .game-table th,
+        .game-table td {
+            border: 1px solid #ddd !important;
+            padding: 8px !important;
+            text-align: center !important;
+            vertical-align: middle !important;
+        }
+
+        .game-table th {
+            background-color: #f8f9fa !important;
+            font-weight: bold !important;
+            color: #333 !important;
+        }
+
+        .game-table td:first-child {
+            text-align: left !important;
+            max-width: 300px !important;
+            word-wrap: break-word !important;
+            font-size: 0.9rem !important;
+        }
+
+        .game-choice-buttons {
+            display: flex !important;
+            gap: 5px !important;
+        }
+
+        .game-choice-btn {
+            padding: 4px 8px !important;
+            font-size: 0.8rem !important;
+            border: 1px solid #ccc !important;
+            background-color: #f9f9f9 !important;
+            color: #333 !important;
+            cursor: pointer !important;
+            border-radius: 3px !important;
+            transition: all 0.2s !important;
+        }
+
+        .game-choice-btn:hover {
+            background-color: #e9e9e9 !important;
+        }
+
+        .game-choice-btn.selected {
+            background-color: #007bff !important;
+            color: white !important;
+            border-color: #007bff !important;
+        }
+
+        .answer-cell {
+            cursor: pointer !important;
+            position: relative !important;
+            font-weight: bold !important;
+        }
+
+        .answer-cell.correct {
+            color: #28a745 !important;
+        }
+
+        .answer-cell.incorrect {
+            color: #dc3545 !important;
+        }
+
+        .tooltip {
+            position: absolute !important;
+            background-color: #333 !important;
+            color: white !important;
+            padding: 10px !important;
+            border-radius: 4px !important;
+            font-size: 0.9rem !important;
+            max-width: 300px !important;
+            z-index: 1000 !important;
+            white-space: normal !important;
+            word-wrap: break-word !important;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.3) !important;
+            bottom: 100% !important;
+            left: 50% !important;
+            transform: translateX(-50%) !important;
+            margin-bottom: 5px !important;
+        }
+
+        .tooltip::after {
+            content: '' !important;
+            position: absolute !important;
+            top: 100% !important;
+            left: 50% !important;
+            margin-left: -5px !important;
+            border-width: 5px !important;
+            border-style: solid !important;
+            border-color: #333 transparent transparent transparent !important;
+        }
+
+
     </style>
 </head>
 <body>
@@ -155,7 +282,7 @@
         </div>
         <div class="navbar-menu">
             <a href="#" class="mode-btn active" id="practice-mode-btn">연습하기</a>
-            <a href="#" class="mode-btn" id="game-mode-btn">게임하기</a>
+            <a href="game.html" class="mode-btn" id="game-mode-btn">게임하기</a>
         </div>
         <div class="navbar-right">
             <a href="index.html" class="mode-btn">메인 페이지</a>
@@ -178,21 +305,22 @@
 
         <div class="distinction-col right-panel" id="quiz-col">
             <div class="input-group full-width">
-                <label for="subject-input">제시문의 핵심 주제는 무엇인가요?</label>
-                <input type="text" id="subject-input" placeholder="핵심 주제를 한 문장으로 입력하세요...">
+                <label for="subject-input">제시문의 중심문장은 무엇인가요?</label>
+                <input type="text" id="subject-input" placeholder="중심문장을 한 문장으로 입력하세요...">
             </div>
 
             <div class="input-group">
                 <label>제시문의 종류는 무엇인가요?</label>
                 <div class="choice-buttons">
                     <button class="choice-btn" data-type="논증">논증</button>
-                    <button class="choice-btn" data-type="인과적 설명">인과적 설명</button>
                     <button class="choice-btn" data-type="기타">기타</button>
                 </div>
             </div>
 
             <button id="submit-btn" class="button" disabled>모범답안 확인</button>
         </div>
+
+
     </main>
 
     <!-- 모범답안 및 해설 팝업 -->

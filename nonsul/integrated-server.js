@@ -169,7 +169,7 @@ async function generateArgumentStructure(keyword, difficulty) {
         `"${keyword}"에 대한 완전한 논증을 만들되, 주장, 근거들, 하위근거들, 숨은전제를 모두 포함하세요.`;
 
     const structureResponse = await openai.chat.completions.create({
-        model: "gpt-4",
+        model: "gpt-4o",
         messages: [{ role: "user", content: structurePrompt + `
 
 결과는 다음 JSON 형식으로만 답변해주세요:
@@ -333,7 +333,7 @@ app.post('/api/generate-prompt', async (req, res) => {
             const prompt = buildClaudeArgumentStructurePrompt(selectedKeyword, criteria, level);
             
             const response = await openai.chat.completions.create({
-                model: "gpt-4",
+                model: "gpt-4o",
                 messages: [{ role: "user", content: prompt }],
                 max_tokens: 2000
             });
@@ -464,7 +464,7 @@ app.post('/api/generate-passage', async (req, res) => {
             }
 
             const passageResponse = await openai.chat.completions.create({
-                model: "gpt-4",
+                model: "gpt-4o",
                 messages: [{ role: "user", content: passagePrompt }],
                 max_tokens: 2000
             });
@@ -693,138 +693,210 @@ app.post('/api/generate-distinction-passage', async (req, res) => {
         const { keyword } = req.body;
         console.log(`[API_CALL] /api/generate-distinction-passage - keyword: ${keyword}`);
 
-        // 랜덤하게 글의 종류 선택
-        const types = ['argument', 'causal', 'other'];
+        // 1. 논증을 생성할 것인가, 비논증을 생성할 것인가를 결정함
+        const types = ['argument', 'non_argument'];
         const selectedType = types[Math.floor(Math.random() * types.length)];
         
         let passageText, coreSubject, explanation, logicalStructure;
 
         if (selectedType === 'argument') {
-            // 논증의 경우
+            // 1.1 논증을 생성하기로 함
+            
+            // 1.1.2 주장이나 결론에 해당하는 문장을 생성함
             const claimResponse = await openai.chat.completions.create({
-                model: "gpt-4",
-                messages: [{ role: "user", content: `"${keyword}"에 대한 명확한 주장을 한 문장으로 작성하세요. 찬성 또는 반대 입장을 명확히 제시해야 합니다.` }],
+                model: "gpt-4o",
+                messages: [{ role: "user", content: `"${keyword}"에 대한 명확한 주장이나 결론을 한 문장으로 작성하세요. 찬성 또는 반대 입장을 분명히 표현해야 합니다.` }],
                 max_tokens: 200
             });
             const claim = claimResponse.choices[0].message.content.trim();
 
+            // 1.1.3 평서문으로 되어 있는 주장(결론)을 의문문으로 바꿔서 쟁점을 생성함
+            const issueResponse = await openai.chat.completions.create({
+                model: "gpt-4o",
+                messages: [{ role: "user", content: `다음 주장을 의문문 형태의 쟁점으로 바꿔주세요:\n주장: ${claim}\n\n예시: "환경보호가 중요하다" → "환경보호가 중요한가?"\n쟁점은 한 문장으로 작성하고, 물음표로 끝나야 합니다.` }],
+                max_tokens: 200
+            });
+            const issue = issueResponse.choices[0].message.content.trim();
+
+            // 1.1.4 근거나 이유에 해당하는 문장들을 생성함
             const groundsResponse = await openai.chat.completions.create({
-                model: "gpt-4",
-                messages: [{ role: "user", content: `다음 주장을 뒷받침하는 근거 2-3개를 각각 한 문장씩 작성하세요:\n주장: ${claim}\n\n각 근거는 별도의 줄에 작성하고, 번호나 기호 없이 문장만 작성하세요.` }],
+                model: "gpt-4o",
+                messages: [{ role: "user", content: `다음 주장을 뒷받침하는 근거나 이유를 2-3개 생성하세요:\n주장: ${claim}\n\n각 근거는 별도의 줄에 작성하고, 번호나 기호 없이 문장만 작성하세요. 근거는 주장을 논리적으로 뒷받침해야 합니다.` }],
                 max_tokens: 500
             });
             const grounds = groundsResponse.choices[0].message.content.trim().split('\n').filter(line => line.trim());
 
-            const integrationResponse = await openai.chat.completions.create({
-                model: "gpt-4",
-                messages: [{ role: "user", content: `다음 주장과 근거들을 자연스럽게 통합하여 하나의 논증문으로 작성하세요:
+            // 1.1.5 주장(결론), 근거(이유)를 활용하여 논증을 생성함
+            const argumentResponse = await openai.chat.completions.create({
+                model: "gpt-4o",
+                messages: [{ role: "user", content: `다음 구조를 바탕으로 자연스러운 논증문을 작성하세요:
 
-주장: ${claim}
-근거들: ${grounds.join(', ')}
-
-요구사항:
-- 4-6문장의 자연스러운 논증문
-- 주장과 근거의 논리적 연결
-- 매끄러운 문체` }],
-                max_tokens: 800
-            });
-            
-            passageText = integrationResponse.choices[0].message.content.trim();
-            logicalStructure = { claim, grounds };
-            coreSubject = `이 제시문은 ${keyword}에 대한 특정 입장을 논리적으로 주장하고 있습니다.`;
-            explanation = `이 제시문은 ${keyword}에 대한 주장과 그 근거를 체계적으로 제시하는 논증문입니다.`;
-
-        } else if (selectedType === 'causal') {
-            // 인과적 설명의 경우
-            const phenomenonResponse = await openai.chat.completions.create({
-                model: "gpt-4",
-                messages: [{ role: "user", content: `"${keyword}"와 관련된 구체적인 현상을 한 문장으로 설명하세요.` }],
-                max_tokens: 200
-            });
-            const phenomenon = phenomenonResponse.choices[0].message.content.trim();
-
-            const causesResponse = await openai.chat.completions.create({
-                model: "gpt-4",
-                messages: [{ role: "user", content: `다음 현상의 주요 원인 2-3개를 각각 한 문장씩 작성하세요:\n현상: ${phenomenon}\n\n각 원인은 별도의 줄에 작성하고, 번호나 기호 없이 문장만 작성하세요.` }],
-                max_tokens: 500
-            });
-            const causes = causesResponse.choices[0].message.content.trim().split('\n').filter(line => line.trim());
-
-            const processResponse = await openai.chat.completions.create({
-                model: "gpt-4",
-                messages: [{ role: "user", content: `다음 원인들이 어떤 과정을 통해 현상으로 이어지는지 설명하세요:\n원인들: ${causes.join(', ')}\n현상: ${phenomenon}\n\n과정을 2-3문장으로 설명하세요.` }],
-                max_tokens: 500
-            });
-            const process = processResponse.choices[0].message.content.trim();
-
-            const integrationResponse = await openai.chat.completions.create({
-                model: "gpt-4",
-                messages: [{ role: "user", content: `다음 요소들을 자연스럽게 통합하여 하나의 인과설명문으로 작성하세요:
-
-현상: ${phenomenon}
-원인들: ${causes.join(', ')}
-과정: ${process}
+주장(결론): ${claim}
+근거들: ${grounds.join(' / ')}
 
 요구사항:
-- 4-6문장의 자연스러운 설명문
-- 원인-과정-결과의 논리적 흐름
-- 분석적이고 객관적인 문체` }],
-                max_tokens: 800
-            });
-            
-            passageText = integrationResponse.choices[0].message.content.trim();
-            logicalStructure = { phenomenon, causes, process };
-            
-            const mainCause = causes[0];
-            coreSubject = `${phenomenon.replace(/\.$/, '')}은(는) ${mainCause.replace(/\.$/, '')} 때문이다.`;
-            explanation = `이 제시문은 ${keyword}와 관련된 현상의 원인과 그 과정을 체계적으로 설명하는 인과설명문입니다.`;
-
-        } else {
-            // 기타의 경우 (정의, 묘사, 서사 등)
-            const topicResponse = await openai.chat.completions.create({
-                model: "gpt-4",
-                messages: [{ role: "user", content: `"${keyword}"를 주제로 한 정의, 묘사, 또는 서사 중 하나의 화제를 정하고, 그 화제를 한 문장으로 설명하세요.` }],
-                max_tokens: 200
-            });
-            const topic = topicResponse.choices[0].message.content.trim();
-
-            const coreThemeResponse = await openai.chat.completions.create({
-                model: "gpt-4",
-                messages: [{ role: "user", content: `다음 화제의 핵심 주제를 한 문장으로 명확히 제시하세요:\n화제: ${topic}` }],
-                max_tokens: 200
-            });
-            const coreTheme = coreThemeResponse.choices[0].message.content.trim();
-
-            const supportingSentencesResponse = await openai.chat.completions.create({
-                model: "gpt-4",
-                messages: [{ role: "user", content: `다음 핵심 주제를 뒷받침하는 부연 설명 문장들 2-3개를 작성하세요:\n핵심 주제: ${coreTheme}\n\n각 문장은 별도의 줄에 작성하고, 번호나 기호 없이 문장만 작성하세요.` }],
-                max_tokens: 500
-            });
-            const supportingSentences = supportingSentencesResponse.choices[0].message.content.trim().split('\n').filter(line => line.trim());
-
-            const integrationResponse = await openai.chat.completions.create({
-                model: "gpt-4",
-                messages: [{ role: "user", content: `다음 요소들을 자연스럽게 통합하여 하나의 글로 작성하세요:
-
-핵심 주제: ${coreTheme}
-부연 설명: ${supportingSentences.join(', ')}
-
-요구사항:
-- 4-6문장의 자연스러운 글
-- 주제의 명확한 제시와 부연
+- 4-6문장으로 구성
+- 근거를 먼저 제시하고 결론으로 마무리하는 자연스러운 흐름
+- 논리적 연결어 사용 (따라서, 그러므로, 왜냐하면 등)
 - 읽기 쉬운 문체` }],
                 max_tokens: 800
             });
             
-            passageText = integrationResponse.choices[0].message.content.trim();
-            logicalStructure = { topic, coreTheme, supportingSentences };
-            coreSubject = `이 제시문은 ${keyword}에 대한 설명이나 묘사를 제시하고 있습니다.`;
-            explanation = `이 제시문은 ${keyword}에 대한 정의, 묘사, 또는 서사를 통해 정보를 전달하는 기타 유형의 글입니다.`;
+            // 1.1.6 생성한 논증을 출력함
+            passageText = argumentResponse.choices[0].message.content.trim();
+            
+            // 1.1.7 쟁점, 주장, 근거는 모범답안 팝업창에 출력함
+            logicalStructure = { 
+                type: 'argument',
+                issue: issue,
+                claim: claim, 
+                grounds: grounds 
+            };
+            coreSubject = claim; // 주장을 중심문장으로 사용
+            
+            // 1.1.8 팝업창에는 논증 구조와 더불어 글의 종류에 대한 설명을 출력해줘
+            explanation = `이 제시문은 특정 쟁점에 대한 입장을 논리적으로 주장하는 논증문입니다. 논증은 주장(결론)과 그것을 뒷받침하는 근거(이유)로 구성되며, 독자를 설득하려는 목적을 가집니다.`;
+
+        } else {
+            // 1.2 비논증을 생성하기로 함
+            
+            // 1.2.1 중심문장을 생성함 (서브타입 결정 포함)
+            const subTypes = ['정의', '묘사', '서사', '설명', '분류', '원인-결과 분석'];
+            const selectedSubType = subTypes[Math.floor(Math.random() * subTypes.length)];
+            
+            const centralSentenceResponse = await openai.chat.completions.create({
+                model: "gpt-4o",
+                messages: [{ role: "user", content: `"${keyword}"에 대한 ${selectedSubType} 글의 중심문장을 한 문장으로 작성하세요. 
+
+${selectedSubType === '정의' ? `정의글 형식으로:
+- "${keyword}은(는) ~이다" 또는 "${keyword}이란 ~을 말한다" 형식 사용
+- 개념의 본질적 속성과 특징을 포함
+- 명확하고 간결한 정의문 작성` : 
+  selectedSubType === '묘사' ? `묘사글 형식으로:
+- "${keyword}은(는) ~한 모습을 보인다" 또는 "${keyword}의 특징은 ~이다" 형식 사용
+- 구체적인 특징이나 외관, 상태를 포함
+- 감각적으로 느낄 수 있는 요소 포함` :
+  selectedSubType === '서사' ? `서사글 형식으로:
+- "${keyword}은(는) ~한 과정을 거쳐 발전했다" 또는 "${keyword}의 역사는 ~로 시작되었다" 형식 사용
+- 시간의 흐름이나 변화 과정이 드러나는 내용
+- 시작점이나 변화의 과정을 암시하는 표현` :
+  selectedSubType === '설명' ? `설명글 형식으로:
+- "${keyword}은(는) ~한 현상이다" 또는 "${keyword}에는 ~한 특성이 있다" 형식 사용
+- 객관적 사실이나 현상을 중심으로
+- 구체적인 내용이나 데이터를 암시하는 표현` :
+  selectedSubType === '분류' ? `분류글 형식으로:
+- "${keyword}은(는) 크게 ~로 나뉜다" 또는 "${keyword}에는 여러 종류가 있다" 형식 사용
+- 여러 유형이나 종류가 있음을 명시
+- 체계적 분류가 가능함을 나타내는 표현` :
+  `원인-결과 분석글 형식으로:
+- "${keyword}은(는) ~로 인해 발생한다" 또는 "${keyword}은(는) ~한 결과이다" 형식 사용
+- 원인과 결과의 관계가 드러나는 내용
+- 현상 발생의 원인을 설명하는 표현 포함`}
+
+이 문장은 글 전체의 핵심 내용을 담아야 하며, 주장이 아닌 사실이나 정보 위주로 작성해주세요.` }],
+                max_tokens: 200
+            });
+            const centralSentence = centralSentenceResponse.choices[0].message.content.trim();
+
+            // 1.2.2 중심문장에 기반하여 글의 주제 문장을 생성함
+            const topicSentenceResponse = await openai.chat.completions.create({
+                model: "gpt-4o",
+                messages: [{ role: "user", content: `다음 중심문장을 바탕으로 글의 주제를 한 문장으로 표현하세요:\n중심문장: ${centralSentence}\n\n주제 문장은 "이 글은 ~에 대해 설명한다" 또는 "이 글은 ~을 다룬다" 형식으로 작성해주세요.` }],
+                max_tokens: 200
+            });
+            const topicSentence = topicSentenceResponse.choices[0].message.content.trim();
+
+            // 1.2.3 중심문장을 부연, 상술, 묘사, 서사 등등의 방법을 동원해서 나머지 문장들을 생성함
+            const supportingSentencesResponse = await openai.chat.completions.create({
+                model: "gpt-4o",
+                messages: [{ role: "user", content: `다음 ${selectedSubType} 글의 중심문장을 ${selectedSubType} 방법에 맞게 설명하는 문장들을 2-3개 생성하세요:
+중심문장: ${centralSentence}
+
+${selectedSubType === '정의' ? '정의에 맞게 개념의 특징이나 속성을 설명' : 
+  selectedSubType === '묘사' ? '묘사에 맞게 구체적인 모습이나 특징을 자세히 그려내기' :
+  selectedSubType === '서사' ? '서사에 맞게 시간 순서나 과정을 따라 서술' :
+  selectedSubType === '설명' ? '설명에 맞게 객관적 사실이나 정보를 제시' :
+  selectedSubType === '분류' ? '분류에 맞게 종류나 유형을 나누어 체계적으로 제시' :
+  '원인-결과 분석에 맞게 현상의 원인과 결과의 관계를 객관적으로 설명'}해주세요.
+
+각 문장은 별도의 줄에 작성하고, 주장이나 논증이 아닌 ${selectedSubType} 위주로 작성하세요.` }],
+                max_tokens: 500
+            });
+            const supportingSentences = supportingSentencesResponse.choices[0].message.content.trim().split('\n').filter(line => line.trim());
+
+            // 1.2.4 중심문장과 기타 문장들을 기반으로 제시문을 생성함
+            const nonArgumentResponse = await openai.chat.completions.create({
+                model: "gpt-4o",
+                messages: [{ role: "user", content: `다음 구조를 바탕으로 ${selectedSubType} 방식의 자연스러운 글을 작성하세요:
+
+중심문장: ${centralSentence}
+부연 설명: ${supportingSentences.join(' / ')}
+
+${selectedSubType} 글의 특성:
+${selectedSubType === '정의' ? '- 개념의 본질과 특징을 명확히 설명\n- "~은 ~이다" 형식의 정의문 포함\n- 개념의 속성과 범위를 구체적으로 제시' : 
+  selectedSubType === '묘사' ? '- 대상의 구체적인 모습과 특징을 생생하게 그려냄\n- 감각적 표현과 세부적 묘사 포함\n- 독자가 머릿속에 그림을 그릴 수 있도록 서술' :
+  selectedSubType === '서사' ? '- 시간의 흐름에 따른 사건이나 과정을 순서대로 서술\n- "처음에는 ~, 그 다음에는 ~, 마지막에는 ~" 형식\n- 변화나 발전 과정을 시간순으로 제시' :
+  selectedSubType === '설명' ? '- 현상이나 사실을 객관적이고 논리적으로 설명\n- 구체적인 예시와 데이터 포함\n- 독자의 이해를 돕는 체계적 설명' :
+  selectedSubType === '분류' ? '- 대상을 종류나 유형별로 나누어 체계적으로 제시\n- "~은 크게 A, B, C로 나뉜다" 형식\n- 각 분류의 특징과 차이점을 명확히 구분' :
+  '- 어떤 현상의 원인과 결과를 객관적으로 설명\n- 원인 → 과정 → 결과의 논리적 흐름\n- "~때문에 ~가 발생한다" 형식의 현상 발생 과정 서술'}
+
+요구사항:
+- 4-6문장으로 구성
+- 중심문장을 자연스럽게 포함
+- ${selectedSubType}의 특성을 명확히 드러내는 내용
+- 주장이나 논증을 피하고 객관적 서술
+- 읽기 쉬운 문체` }],
+                max_tokens: 800
+            });
+            
+            // 1.2.5 생성한 문장을 제시문으로 출력함
+            passageText = nonArgumentResponse.choices[0].message.content.trim();
+            
+            // 1.2.6 팝업창에는 글의 주제, 중심문장 등의 내용 요약과 글의 종류에 대한 설명을 출력해줘
+            
+            // 제시문 내용 요약 생성
+            const summaryResponse = await openai.chat.completions.create({
+                model: "gpt-4o",
+                messages: [{ role: "user", content: `다음 제시문의 내용을 2-3문장으로 요약해주세요:
+
+제시문: ${passageText}
+
+요약 요구사항:
+- 제시문의 핵심 내용을 간결하게 정리
+- 어떤 내용을 다루고 있는지 명확히 제시
+- 객관적이고 중립적인 톤으로 작성` }],
+                max_tokens: 300
+            });
+            const contentSummary = summaryResponse.choices[0].message.content.trim();
+            
+            logicalStructure = { 
+                type: 'non_argument',
+                subType: selectedSubType,
+                topicSentence: topicSentence,
+                centralSentence: centralSentence, 
+                supportingSentences: supportingSentences,
+                contentSummary: contentSummary
+            };
+            coreSubject = centralSentence; // 중심문장을 핵심 주제로 사용
+            
+            // 더 구체적인 해설 생성
+            const subTypeExplanations = {
+                '정의': '개념이나 대상의 본질과 특징을 명확히 설명하는 글입니다. 주로 "~은 ~이다" 형식으로 개념을 정의하고, 그 속성과 범위를 구체적으로 제시합니다.',
+                '묘사': '대상의 구체적인 모습, 특징, 상태를 생생하게 그려내는 글입니다. 감각적 표현을 통해 독자가 머릿속에 생생한 그림을 그릴 수 있도록 서술합니다.',
+                '서사': '시간의 흐름에 따른 사건이나 과정을 순서대로 서술하는 글입니다. 변화나 발전 과정을 시간순으로 제시하여 이야기를 전개합니다.',
+                '설명': '현상이나 사실을 객관적이고 논리적으로 설명하는 글입니다. 구체적인 예시와 데이터를 통해 독자의 이해를 돕습니다.',
+                '분류': '대상을 종류나 유형별로 나누어 체계적으로 제시하는 글입니다. 각 분류의 특징과 차이점을 명확히 구분하여 설명합니다.',
+                '원인-결과 분석': '어떤 현상의 원인과 결과의 관계를 객관적으로 서술하는 글입니다. 원인에서 결과로 이어지는 논리적 흐름을 통해 현상의 발생 과정을 설명합니다.'
+            };
+            
+            explanation = `이 제시문은 기타 유형의 글로, 구체적으로는 ${selectedSubType}에 해당합니다. ${subTypeExplanations[selectedSubType]} 
+
+제시문 내용 요약: ${contentSummary}`;
         }
 
         const result = {
             passageText: passageText,
-            passageType: selectedType === 'argument' ? '논증' : selectedType === 'causal' ? '인과적 설명' : '기타',
+            passageType: selectedType === 'argument' ? '논증' : `기타(${logicalStructure.subType || '기타'})`,
             explanation: explanation,
             coreSubject: coreSubject,
             logicalStructure: logicalStructure
@@ -894,7 +966,7 @@ ${lengthRequirement}으로 작성하세요.
 자연스럽고 읽기 쉬운 문체로 작성하되, 위에서 언급한 특징들이 자연스럽게 포함되도록 하세요.`;
 
         const response = await openai.chat.completions.create({
-            model: "gpt-4",
+            model: "gpt-4o",
             messages: [{ role: "user", content: prompt }],
             max_tokens: 2000
         });
@@ -963,7 +1035,7 @@ app.post('/api/analyze-image-argument', async (req, res) => {
 
         // OpenAI Vision API를 사용한 이미지 분석
         const response = await openai.chat.completions.create({
-            model: "gpt-4-vision-preview",
+            model: "gpt-4o",
             messages: [
                 {
                     role: "user",
@@ -1012,6 +1084,88 @@ app.post('/api/analyze-image-argument', async (req, res) => {
     }
 });
 
+// 6.6 게임용 제시문 생성 (빠른 고품질 생성)
+app.post('/api/generate-game-passage', async (req, res) => {
+    try {
+        // 개발 중 API 키 없이도 테스트 가능하도록 목업 데이터 제공
+        if (!openai) {
+            const mockData = {
+                text: "스마트폰은 현대인의 필수품이 되었다. 이제 우리는 하루도 스마트폰 없이 살기 어려워했다. 많은 사람들이 스마트폰을 통해 소통하고 정보를 얻고 있다.",
+                type: "비논증",
+                explanation: "이 글은 스마트폰의 현재 상황과 중요성을 설명하는 비논증문입니다."
+            };
+            return res.json(mockData);
+        }
+
+        const { keyword, type } = req.body;
+        console.log(`[API_CALL] /api/generate-game-passage - keyword: ${keyword}, type: ${type}`);
+
+        // 게임용 단일 프롬프트로 빠른 생성 (GPT-4o 사용)
+        let prompt;
+        if (type === 'argument') {
+            prompt = `"${keyword}"에 대한 짧은 논증문을 3-4문장으로 작성하세요.
+
+요구사항:
+- 명확한 주장 1개와 근거 2개 포함
+- 논리적 관계사 사용 금지 (따라서, 그러므로, 왜냐하면 등)
+- 자연스러운 연결로 논증 구조 표현
+- 설득력 있는 내용
+
+응답 형식:
+제시문만 출력하세요. 다른 설명은 불필요합니다.`;
+        } else {
+            const subTypes = ['정의', '묘사', '서사', '설명', '분류', '현상묘사'];
+            const selectedSubType = subTypes[Math.floor(Math.random() * subTypes.length)];
+            
+            prompt = `"${keyword}"에 대한 ${selectedSubType} 방식의 짧은 글을 3-4문장으로 작성하세요.
+
+요구사항:
+- ${selectedSubType} 글의 특성에 맞게 작성
+- 주장이나 논증 구조 없이 사실적 설명만
+- 자연스럽고 읽기 쉬운 문체
+- 정보 전달 목적
+
+응답 형식:
+제시문만 출력하세요. 다른 설명은 불필요합니다.`;
+        }
+
+        const response = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [{ role: "user", content: prompt }],
+            max_tokens: 300,
+            temperature: 0.8
+        });
+
+        const passageText = response.choices[0].message.content.trim();
+
+        // 간단한 설명 생성
+        const explanationPrompt = `다음 제시문의 글의 종류와 특징을 1-2문장으로 설명하세요:
+
+제시문: ${passageText}
+
+${type === 'argument' ? '논증문' : '비논증문'}의 특징을 중심으로 간단히 설명해주세요.`;
+
+        const explanationResponse = await openai.chat.completions.create({
+            model: "gpt-4o",
+            messages: [{ role: "user", content: explanationPrompt }],
+            max_tokens: 150,
+            temperature: 0.7
+        });
+
+        const explanation = explanationResponse.choices[0].message.content.trim();
+
+        res.json({
+            text: passageText,
+            type: type === 'argument' ? '논증' : '비논증',
+            explanation: explanation
+        });
+
+    } catch (error) {
+        console.error(`[ERROR] /api/generate-game-passage: ${error.message}`);
+        res.status(500).json({ error: '제시문 생성 중 오류가 발생했습니다.' });
+    }
+});
+
 // 8. 에러 핸들링 미들웨어
 app.use((err, req, res, next) => {
     console.error('[ERROR]', err);
@@ -1047,6 +1201,7 @@ app.listen(PORT, () => {
 - POST /api/generate-non-argument-passage (비논증 요약)
 - GET /api/proxy-image (이미지 프록시)
 - POST /api/analyze-image-argument (이미지 논증 분석)
+- POST /api/generate-game-passage (게임용 제시문 생성)
 
 ⚙️ 설정된 API:
 - OpenAI: ${openai ? '✅' : '❌'}

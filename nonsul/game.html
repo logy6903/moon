@@ -1,0 +1,510 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>논증 구분하기 게임</title>
+    <link rel="stylesheet" href="style.css?v=1.8">
+    <style>
+        /* 게임 페이지 전용 스타일 */
+        .game-container {
+            max-width: 1400px !important;
+            margin: 0 auto !important;
+            padding: 20px !important;
+            display: block !important;
+        }
+
+        .game-header-section {
+            display: flex !important;
+            align-items: center !important;
+            justify-content: space-between !important;
+            margin-bottom: 30px !important;
+            padding: 20px !important;
+            background-color: #f8f9fa !important;
+            border-radius: 8px !important;
+            border: 1px solid #ddd !important;
+        }
+
+        .game-title-part {
+            flex: 1 !important;
+        }
+
+        .game-title-part h1 {
+            color: #333 !important;
+            margin: 0 0 10px 0 !important;
+            font-size: 2rem !important;
+        }
+
+        .game-title-part p {
+            color: #666 !important;
+            font-size: 1.1rem !important;
+            margin: 0 !important;
+        }
+
+        .game-controls-part {
+            display: flex !important;
+            align-items: center !important;
+            gap: 20px !important;
+        }
+
+        .timer-display {
+            font-size: 1.5rem !important;
+            font-weight: bold !important;
+            color: #333 !important;
+        }
+
+
+
+        .game-table-container {
+            overflow: auto !important;
+            margin-bottom: 20px !important;
+            background-color: white !important;
+            border: 2px solid #ccc !important;
+            border-radius: 4px !important;
+            width: 100% !important;
+            max-height: 600px !important;
+            display: block !important;
+            clear: both !important;
+        }
+
+        /* 스크롤바 스타일링 */
+        .game-table-container::-webkit-scrollbar {
+            width: 8px !important;
+            height: 8px !important;
+        }
+
+        .game-table-container::-webkit-scrollbar-track {
+            background: #f1f1f1 !important;
+            border-radius: 4px !important;
+        }
+
+        .game-table-container::-webkit-scrollbar-thumb {
+            background: #c1c1c1 !important;
+            border-radius: 4px !important;
+        }
+
+        .game-table-container::-webkit-scrollbar-thumb:hover {
+            background: #a8a8a8 !important;
+        }
+
+        .game-table {
+            width: 100% !important;
+            min-width: 1200px !important;
+            border-collapse: collapse !important;
+            background-color: white !important;
+            font-family: Arial, sans-serif !important;
+            table-layout: fixed !important;
+        }
+
+        .game-table th,
+        .game-table td {
+            border: 1px solid #e0e0e0 !important;
+            padding: 12px !important;
+            text-align: center !important;
+            vertical-align: top !important;
+            position: relative !important;
+        }
+
+        /* 열 너비 설정: 제시문 2/3, 나머지 3개 열이 1/3을 균등 분할 */
+        .game-table th:nth-child(1),
+        .game-table td:nth-child(1) {
+            width: 66.67% !important; /* 제시문 - 2/3 */
+        }
+
+        .game-table th:nth-child(2),
+        .game-table td:nth-child(2) {
+            width: 11.11% !important; /* 글의 종류 - 1/9 */
+        }
+
+        .game-table th:nth-child(3),
+        .game-table td:nth-child(3) {
+            width: 11.11% !important; /* 타임체크 - 1/9 */
+        }
+
+        .game-table th:nth-child(4),
+        .game-table td:nth-child(4) {
+            width: 11.11% !important; /* 정답확인 - 1/9 */
+        }
+
+        .game-table th {
+            background-color: #f1f3f4 !important;
+            font-weight: 500 !important;
+            color: #3c4043 !important;
+            font-size: 0.875rem !important;
+            height: 40px !important;
+            vertical-align: middle !important;
+        }
+
+        .game-table td {
+            background-color: white !important;
+            min-height: 60px !important;
+            font-size: 0.875rem !important;
+        }
+
+        .game-table td:hover {
+            background-color: #f8f9fa !important;
+        }
+
+        /* 제시문 셀 스타일 */
+        .passage-cell {
+            text-align: left !important;
+            word-wrap: break-word !important;
+            padding: 12px !important;
+            line-height: 1.5 !important;
+            white-space: normal !important;
+        }
+
+        .choice-buttons {
+            display: flex !important;
+            flex-direction: column !important;
+            gap: 5px !important;
+            justify-content: center !important;
+            align-items: center !important;
+        }
+
+        .choice-btn {
+            padding: 6px 10px !important;
+            font-size: 0.75rem !important;
+            border: 1px solid #ccc !important;
+            background-color: #f9f9f9 !important;
+            color: #333 !important;
+            cursor: pointer !important;
+            border-radius: 3px !important;
+            transition: all 0.2s !important;
+            width: 60px !important;
+            text-align: center !important;
+            white-space: nowrap !important;
+        }
+
+        .choice-btn:hover {
+            background-color: #e9e9e9 !important;
+        }
+
+        .choice-btn.selected {
+            background-color: #007bff !important;
+            color: white !important;
+            border-color: #007bff !important;
+        }
+
+        .choice-btn:disabled {
+            opacity: 0.6 !important;
+            cursor: not-allowed !important;
+        }
+
+        .answer-check-btn {
+            padding: 6px 12px !important;
+            font-size: 0.8rem !important;
+            border: 1px solid #ccc !important;
+            background-color: #f9f9f9 !important;
+            color: #333 !important;
+            cursor: pointer !important;
+            border-radius: 4px !important;
+            transition: all 0.2s !important;
+        }
+
+        .answer-check-btn:disabled {
+            opacity: 0.6 !important;
+            cursor: not-allowed !important;
+            background-color: #e9ecef !important;
+        }
+
+        .answer-check-btn:not(:disabled) {
+            background-color: #28a745 !important;
+            color: white !important;
+            border-color: #28a745 !important;
+        }
+
+        .answer-check-btn:not(:disabled):hover {
+            background-color: #218838 !important;
+            border-color: #1e7e34 !important;
+        }
+
+        .answer-cell {
+            cursor: pointer !important;
+            position: relative !important;
+            font-weight: bold !important;
+        }
+
+        .answer-cell.correct {
+            color: #28a745 !important;
+        }
+
+        .answer-cell.incorrect {
+            color: #dc3545 !important;
+        }
+
+        .tooltip {
+            position: absolute !important;
+            background-color: rgba(248, 249, 250, 0.95) !important;
+            color: #333 !important;
+            padding: 15px !important;
+            border-radius: 8px !important;
+            font-size: 0.9rem !important;
+            width: 400px !important;
+            max-width: none !important;
+            z-index: 1000 !important;
+            white-space: normal !important;
+            word-wrap: break-word !important;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2) !important;
+            border: 1px solid #dee2e6 !important;
+            top: 50% !important;
+            right: 100% !important;
+            transform: translateY(-50%) !important;
+            margin-right: 10px !important;
+            line-height: 1.5 !important;
+        }
+
+        .tooltip::after {
+            content: '' !important;
+            position: absolute !important;
+            top: 50% !important;
+            left: 100% !important;
+            margin-top: -6px !important;
+            border-width: 6px !important;
+            border-style: solid !important;
+            border-color: transparent transparent transparent rgba(248, 249, 250, 0.95) !important;
+        }
+
+        /* 툴팁이 화면 왼쪽을 벗어나지 않도록 최소 여백 확보 */
+        .answer-cell {
+            position: relative !important;
+            min-width: 80px !important;
+        }
+
+        .navigation-buttons {
+            display: flex !important;
+            justify-content: space-between !important;
+            margin-top: 30px !important;
+        }
+
+        .nav-btn {
+            padding: 12px 24px !important;
+            font-size: 1rem !important;
+            border: 1px solid #ccc !important;
+            background-color: #f8f9fa !important;
+            color: #333 !important;
+            text-decoration: none !important;
+            border-radius: 6px !important;
+            transition: all 0.2s !important;
+        }
+
+        .nav-btn:hover {
+            background-color: #e9ecef !important;
+            border-color: #adb5bd !important;
+        }
+
+        .game-complete-modal {
+            position: fixed !important;
+            top: 0 !important;
+            left: 0 !important;
+            width: 100% !important;
+            height: 100% !important;
+            background-color: rgba(0,0,0,0.5) !important;
+            display: none !important;
+            justify-content: center !important;
+            align-items: center !important;
+            z-index: 2000 !important;
+        }
+
+        .modal-content {
+            background-color: white !important;
+            padding: 30px !important;
+            border-radius: 12px !important;
+            text-align: center !important;
+            max-width: 400px !important;
+            width: 90% !important;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.3) !important;
+        }
+
+        .modal-content h2 {
+            color: #333 !important;
+            margin-bottom: 20px !important;
+        }
+
+        .score-display {
+            font-size: 2rem !important;
+            font-weight: bold !important;
+            color: #007bff !important;
+            margin: 20px 0 !important;
+        }
+    </style>
+</head>
+<body>
+    <nav class="navbar">
+        <div class="navbar-brand">
+            <a>논증 구분하기</a>
+        </div>
+        <div class="navbar-menu">
+            <a href="distinguish-argument.html" class="mode-btn">연습하기</a>
+            <a href="game.html" class="mode-btn active">게임하기</a>
+        </div>
+        <div class="navbar-right">
+            <a href="index.html" class="mode-btn">메인 페이지</a>
+        </div>
+    </nav>
+
+    <main class="game-container">
+        <!-- 1. 제목과 컨트롤이 함께 있는 상단 섹션 -->
+        <div class="game-header-section">
+            <div class="game-title-part">
+                <h1>논증 구분하기 게임</h1>
+                <p>제시문의 글의 종류를 얼마나 빨리 정확하게 맞출 수 있는지 확인해보세요!</p>
+            </div>
+            <div class="game-controls-part">
+                <button id="game-start-btn" class="button">게임 시작!</button>
+                <div class="timer-display">
+                    <span>시간: </span>
+                    <span id="timer">00:00</span>
+                </div>
+                <button id="game-answer-btn" class="button" style="display: none;">모범답안</button>
+            </div>
+        </div>
+
+        <div class="game-table-container">
+            <table id="game-table" class="game-table">
+                <thead>
+                    <tr>
+                        <th>제시문</th>
+                        <th>글의 종류는?</th>
+                        <th>타임체크</th>
+                        <th><button id="check-answers-btn" class="answer-check-btn" disabled>정답확인</button></th>
+                    </tr>
+                </thead>
+                <tbody id="game-table-body">
+                    <tr data-row="1">
+                        <td class="passage-cell"></td>
+                        <td class="choice-cell">
+                            <div class="choice-buttons">
+                                <button class="choice-btn" data-type="논증" data-row="1">논증</button>
+                                <button class="choice-btn" data-type="비논증" data-row="1">비논증</button>
+                            </div>
+                        </td>
+                        <td class="time-cell"></td>
+                        <td class="answer-cell"></td>
+                    </tr>
+                    <tr data-row="2">
+                        <td class="passage-cell"></td>
+                        <td class="choice-cell">
+                            <div class="choice-buttons">
+                                <button class="choice-btn" data-type="논증" data-row="2">논증</button>
+                                <button class="choice-btn" data-type="비논증" data-row="2">비논증</button>
+                            </div>
+                        </td>
+                        <td class="time-cell"></td>
+                        <td class="answer-cell"></td>
+                    </tr>
+                    <tr data-row="3">
+                        <td class="passage-cell"></td>
+                        <td class="choice-cell">
+                            <div class="choice-buttons">
+                                <button class="choice-btn" data-type="논증" data-row="3">논증</button>
+                                <button class="choice-btn" data-type="비논증" data-row="3">비논증</button>
+                            </div>
+                        </td>
+                        <td class="time-cell"></td>
+                        <td class="answer-cell"></td>
+                    </tr>
+                    <tr data-row="4">
+                        <td class="passage-cell"></td>
+                        <td class="choice-cell">
+                            <div class="choice-buttons">
+                                <button class="choice-btn" data-type="논증" data-row="4">논증</button>
+                                <button class="choice-btn" data-type="비논증" data-row="4">비논증</button>
+                            </div>
+                        </td>
+                        <td class="time-cell"></td>
+                        <td class="answer-cell"></td>
+                    </tr>
+                    <tr data-row="5">
+                        <td class="passage-cell"></td>
+                        <td class="choice-cell">
+                            <div class="choice-buttons">
+                                <button class="choice-btn" data-type="논증" data-row="5">논증</button>
+                                <button class="choice-btn" data-type="비논증" data-row="5">비논증</button>
+                            </div>
+                        </td>
+                        <td class="time-cell"></td>
+                        <td class="answer-cell"></td>
+                    </tr>
+                    <tr data-row="6">
+                        <td class="passage-cell"></td>
+                        <td class="choice-cell">
+                            <div class="choice-buttons">
+                                <button class="choice-btn" data-type="논증" data-row="6">논증</button>
+                                <button class="choice-btn" data-type="비논증" data-row="6">비논증</button>
+                            </div>
+                        </td>
+                        <td class="time-cell"></td>
+                        <td class="answer-cell"></td>
+                    </tr>
+                    <tr data-row="7">
+                        <td class="passage-cell"></td>
+                        <td class="choice-cell">
+                            <div class="choice-buttons">
+                                <button class="choice-btn" data-type="논증" data-row="7">논증</button>
+                                <button class="choice-btn" data-type="비논증" data-row="7">비논증</button>
+                            </div>
+                        </td>
+                        <td class="time-cell"></td>
+                        <td class="answer-cell"></td>
+                    </tr>
+                    <tr data-row="8">
+                        <td class="passage-cell"></td>
+                        <td class="choice-cell">
+                            <div class="choice-buttons">
+                                <button class="choice-btn" data-type="논증" data-row="8">논증</button>
+                                <button class="choice-btn" data-type="비논증" data-row="8">비논증</button>
+                            </div>
+                        </td>
+                        <td class="time-cell"></td>
+                        <td class="answer-cell"></td>
+                    </tr>
+                    <tr data-row="9">
+                        <td class="passage-cell"></td>
+                        <td class="choice-cell">
+                            <div class="choice-buttons">
+                                <button class="choice-btn" data-type="논증" data-row="9">논증</button>
+                                <button class="choice-btn" data-type="비논증" data-row="9">비논증</button>
+                            </div>
+                        </td>
+                        <td class="time-cell"></td>
+                        <td class="answer-cell"></td>
+                    </tr>
+                    <tr data-row="10">
+                        <td class="passage-cell"></td>
+                        <td class="choice-cell">
+                            <div class="choice-buttons">
+                                <button class="choice-btn" data-type="논증" data-row="10">논증</button>
+                                <button class="choice-btn" data-type="비논증" data-row="10">비논증</button>
+                            </div>
+                        </td>
+                        <td class="time-cell"></td>
+                        <td class="answer-cell"></td>
+                    </tr>
+                </tbody>
+            </table>
+        </div>
+
+        <div class="navigation-buttons">
+            <a href="distinguish-argument.html" class="nav-btn">← 논증 구분하기로 돌아가기</a>
+            <button id="reset-game-btn" class="nav-btn" style="display: none;">새 게임 시작</button>
+        </div>
+    </main>
+
+    <!-- 게임 완료 모달 -->
+    <div id="game-complete-modal" class="game-complete-modal">
+        <div class="modal-content">
+            <h2>🎉 게임 완료!</h2>
+            <div class="score-display" id="final-score">8/10</div>
+            <p id="completion-message">훌륭한 성과입니다!</p>
+            <p>총 소요 시간: <span id="final-time">02:45</span></p>
+            <div style="margin-top: 20px;">
+                <button id="modal-new-game-btn" class="button" style="margin-right: 10px;">새 게임</button>
+                <button id="modal-close-btn" class="button">닫기</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="game-script.js?v=1.0"></script>
+</body>
+</html>
